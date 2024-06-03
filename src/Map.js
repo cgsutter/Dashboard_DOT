@@ -3,8 +3,9 @@ import React, { useRef, useEffect } from 'react';
 import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
-const token = "pk.eyJ1Ijoia3N1bGlhIiwiYSI6ImNqdWE5a2xmNTAwZG80M213NXF2eW81bzQifQ.LmGPYr2NaoRJXgdHdLs6uA"
-mapboxgl.accessToken = token;
+import { api_token_mapbox } from '../credentials.js';
+// const token = MY_CONSTANT
+mapboxgl.accessToken = api_token_mapbox;
 
 
 const Map = (props) => {
