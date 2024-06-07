@@ -117,19 +117,19 @@ const Map = (props) => {
     //       </div>
     //     </div>
     //   );
-    // };
+    // };  
     return (
         <div>
           <select onChange={handleDictionaryChange} value={selectedDictionary}>
-            <option value="camdatacolor_current">Cam Data Color</option>
+            <option value="camdatacolor_current">Current</option>
             <option value="camdatacolor_prior60">Past: 60 min ago</option>
             <option value="camdatacolor_future60">Future: 60 min forecast</option>
           </select>
           <div
             ref={mapContainer}
             style={{
-              width: '100%',
-              height: '100%',
+              width: '100vw',
+              height: '100vh',
               position: 'relative',
             }}
           >
@@ -137,6 +137,7 @@ const Map = (props) => {
           </div>
         </div>
       );
+
     };
 
 export default Map;
