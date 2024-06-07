@@ -12,7 +12,7 @@ const App = () => {
     console.log("testing", state)
 
     return (
-        <div style={{ backgroundColor: "black", padding: "50px" }}>
+        <div style={{ backgroundColor: "black", padding: "10px" , height: "100vh" }}>
             {/* <div className="firstdiv"> */}
             <h1>Hello React hi again</h1>;
             <Map state={state} setState={setState}>
