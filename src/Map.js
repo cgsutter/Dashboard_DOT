@@ -24,7 +24,21 @@ const Map = (props) => {
   const [toggle, setToggle] = useState(true); // Add a state variable for the toggle
   const [selectedDictionary, setSelectedDictionary] = useState('camdata_current');
 
-
+  const getTitle = () => {
+    switch (selectedDictionary) {
+      case 'camdata_current':
+        return 'Current road surface conditions';
+      case 'camdata_casestudy':
+        return 'Case study example of road surface conditions';
+      // case 'camdata_casestudy_toggle1':
+      //   return 'Case Study Example';
+      // case 'camdata_casestudy_toggle2':
+      //   return 'Case Study Example Alternative 2';
+      // // Add more cases as needed
+      default:
+        return 'Road surface conditions';
+    }
+  };
 
   console.log("PRINT COLOR")
   // console.log(camdata_current['Skyline_5996'].color)
@@ -90,69 +104,46 @@ const Map = (props) => {
     // ];
 
     // Loop through the conditions in the specified orderconditionOrder.forEach((condition) => {
+    // Add markers - original
     if (Array.isArray(camdata)) {
-      camdata.forEach(entry => {
+      const conditionOrder = [
+        "obs",
+        "poor_viz",
+        "dry",
+        "wet",
+        "snow",
+        "snow_severe",
+      ];
 
-        const rscData = (
-          selectedDictionary === 'camdata_current'
-            ? camdata_current[entry.id]
-            : selectedDictionary === 'camdata_casestudy'
-            ? camdata_casestudy[entry.id]
-            : null 
-            // null in case of neither being selected
-        ) ?? { final_model_pred: 'NA', color: 'black', confidence: 'NA' };
+      conditionOrder.forEach((condition) => {
+        camdata.forEach((entry) => {
+          const rscData = (
+            selectedDictionary === "camdata_current"
+              ? camdata_current[entry.id]
+              : selectedDictionary === "camdata_casestudy"
+              ? camdata_casestudy[entry.id]
+              : null
+          ) ?? { final_model_pred: "NA", color: "black", confidence: "NA" };
 
-        //     // Define the zIndex based on the condition
-        // let zIndex = 0;
-        // switch (rscData.final_model_pred) {
-        //   case "SevereSnow":
-        //     zIndex = 0;
-        //     break;
-        //   case "Snow":
-        //     zIndex = 1;
-        //     break;
-        //   case "Wet":
-        //     zIndex = 2;
-        //     break;
-        //   case "Dry":
-        //     zIndex = 3;
-        //     break;
-        //   case "PoorVisibility":
-        //     zIndex = 4;
-        //     break;
-        //   case "Obstructed":
-        //     zIndex = 5;
-        //     break;
-        //   default:
-        //     zIndex = 6;
-        // }
+          if (rscData.final_model_pred === condition && conditions[condition.toLowerCase()]) {
+            const el = document.createElement("div");
+            el.className = "marker";
+            el.style.background = rscData.color;
+            el.style.width = "10px";
+            el.style.height = "10px";
+            el.style.borderRadius = "50%";
 
-
-        
-        // Check if the condition is visible
-        if (conditions[rscData.final_model_pred]) {
-          const el = document.createElement('div');
-          el.className = 'marker';
-          el.style.background = rscData.color;
-          el.style.width = '10px';
-          el.style.height = '10px';
-          el.style.borderRadius = '50%';
-          // el.style.zIndex = zIndex;
-
-          new mapboxgl.Marker(el)
-          .setLngLat([entry.lon, entry.lat])
-          .setPopup(
-            new mapboxgl.Popup().setHTML(
-              `ID: ${entry.id} <br> Condition: ${rscData.final_model_pred} <br>  Confidence: ${rscData.confidence}`
-            )
-          )
-          .addTo(map);
-        }
-
-
+            new mapboxgl.Marker(el)
+              .setLngLat([entry.lon, entry.lat])
+              .setPopup(
+                new mapboxgl.Popup().setHTML(
+                  `ID: ${entry.id} <br> Condition: ${rscData.final_model_pred} <br>  Confidence: ${rscData.confidence}`
+                )
+              )
+              .addTo(map);
+          }
+        });
       });
-    } else {
-      console.error('Data is not an array');
     }
 
     return () => map.remove();
@@ -171,6 +162,7 @@ const Map = (props) => {
   return (
 
     <div>
+      <h1>{getTitle()}</h1>
       <div id="color-key">
         <ul style={{ listStyleType: 'none', padding: 0 }}>
           <li style={{ marginBottom: '12px' }}>
