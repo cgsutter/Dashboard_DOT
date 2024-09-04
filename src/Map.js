@@ -238,6 +238,7 @@ const Map = (props) => {
       <select onChange={handleDictionaryChange} value={selectedDictionary}>
         <option value="camdata_current">Current (using camera)</option>
         <option value="camdata_casestudy">Case study example</option>
+        <option value="camdata_future">Future (using forecast)</option>
         {/* <option value="camdata_future60">Future: 60 min forecast (using weather forecast)</option> */} 
         {/* Past: 60 min ago (using camera) */}
       </select>

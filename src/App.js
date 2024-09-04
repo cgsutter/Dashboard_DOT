@@ -14,7 +14,7 @@ const App = () => {
     return (
         <div style={{ backgroundColor: "grey", padding: "10px" , height: "500vh" }}>
             {/* <div className="firstdiv"> */}
-            <h1>Road Surface Predictions for March 23, 2024 at 5pm EST</h1>
+            {/* <h1>Road Surface Predictions for March 23, 2024 at 5pm EST</h1> */}
             <Map state={state} setState={setState}>
             </Map>
             <button onClick={() => setState({ ...state, lng: -30 })}>button</button>
