@@ -3,11 +3,25 @@ import React, { useState, useRef, useEffect } from 'react';
 import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
-import camdata_current from "../data/dot_cam_current.js";
+import camdata_current from "../data/dot_cam_current.js"
+// import camdata_current from "../data/dot_cam_current.js"; 
 import camdata_casestudy from "../data/dot_cam_casestudy.js";
-// import camdata_prior60 from "../data/dot_cam_latlon_color_prior60min.js";
-// import camdata_future60 from "../data/dot_cam_latlon_color_future60min.js";
-// import camdata_casestudy1a from "../data/dot_cam_latlon_color_casestudy_1a.js";
+import camdata_casestudy_20220203_06 from "../data/case_20220203_06.js"
+import camdata_casestudy_20220203_18 from "../data/case_20220203_18.js"
+import camdata_casestudy_20220204_06 from "../data/case_20220204_06.js"
+import camdata_casestudy_20220204_18 from "../data/case_20220204_18.js"
+import camdata_casestudy_20220205_06 from "../data/case_20220205_06.js"
+import camdata_casestudy_20240116_06 from "../data/case_20240116_06.js"
+import camdata_casestudy_20240116_18 from "../data/case_20240116_18.js"
+
+import camdata_casestudy_20240323_00 from "../data/case_20240323_00.js"
+import camdata_casestudy_20240323_06 from "../data/case_20240323_06.js"
+import camdata_casestudy_20240323_12 from "../data/case_20240323_12.js"
+import camdata_casestudy_20240323_18 from "../data/case_20240323_18.js"
+
+import camdata_prior60 from "../data/dot_cam_latlon_color_prior60min.js";
+import camdata_future60 from "../data/dot_cam_latlon_color_future60min.js";
+import camdata_casestudy1a from "../data/dot_cam_latlon_color_casestudy_1a.js";
 // import camdata_casestudy1b from "../data/dot_cam_latlon_color_casestudy_1b.js";
 // import camdata_casestudy2a from "../data/dot_cam_latlon_color_casestudy_2a.js";
 // import camdata_casestudy2b from "../data/dot_cam_latlon_color_casestudy_2b.js";
@@ -28,13 +42,31 @@ const Map = (props) => {
     switch (selectedDictionary) {
       case 'camdata_current':
         return 'Current road surface conditions';
-      case 'camdata_casestudy':
-        return 'Case study example of road surface conditions';
-      // case 'camdata_casestudy_toggle1':
-      //   return 'Case Study Example';
-      // case 'camdata_casestudy_toggle2':
-      //   return 'Case Study Example Alternative 2';
-      // // Add more cases as needed
+      // case 'camdata_casestudy':
+      //   return 'Case study example of road surface conditions';
+      case 'camdata_casestudy_20220203_06':
+        return 'Case Study: Feb 3 2022 at 1am EST';
+      case 'camdata_casestudy_20220203_18':
+        return 'Case Study: Feb 3 2022 at 1pm EST';
+      case 'camdata_casestudy_20220204_06':
+        return 'Case Study: Feb 4 2022 at 1am EST';
+      case 'camdata_casestudy_20220204_18':
+        return 'Case Study: Feb 4 2022 at 1pm EST';
+      case 'camdata_casestudy_20220205_06':
+      return 'Case Study: Feb 5 2022 at 1am EST';
+      case 'camdata_casestudy_20240116_06':
+        return 'Case Study: Jan 16 2024 at 1am EST';
+      case 'camdata_casestudy_20240116_18':
+        return 'Case Study: Jan 16 2024 at 1pm EST';
+      case 'camdata_casestudy_20240323_00':
+        return 'Case Study: Mar 23 2024 at 5am EST';
+      case 'camdata_casestudy_20240323_06':
+        return 'Case Study: Mar 23 2024 at 11am EST';
+      case 'camdata_casestudy_20240323_12':
+        return 'Case Study: Mar 23 2024 at 5pm EST';
+      case 'camdata_casestudy_20240323_18':
+        return 'Case Study: Mar 23 2024 at 11pm EST';
+      // Add more cases as needed
       default:
         return 'Road surface conditions';
     }
@@ -68,6 +100,7 @@ const Map = (props) => {
       attributionControl: false,
       center: [state.lng, state.lat],
       zoom: state.zoom,
+      // alignItems: "top"
     });
 
     // Add navigation control
@@ -120,8 +153,30 @@ const Map = (props) => {
           const rscData = (
             selectedDictionary === "camdata_current"
               ? camdata_current[entry.id]
-              : selectedDictionary === "camdata_casestudy"
-              ? camdata_casestudy[entry.id]
+              // : selectedDictionary === "camdata_casestudy"
+              // ? camdata_casestudy[entry.id]
+              : selectedDictionary === "camdata_casestudy_20220203_06"
+              ? camdata_casestudy_20220203_06[entry.id]
+              : selectedDictionary === "camdata_casestudy_20220203_18"
+              ? camdata_casestudy_20220203_18[entry.id]
+              : selectedDictionary === "camdata_casestudy_20220204_06"
+              ? camdata_casestudy_20220204_06[entry.id]
+              : selectedDictionary === "camdata_casestudy_20220204_18"
+              ? camdata_casestudy_20220204_18[entry.id]
+              : selectedDictionary === "camdata_casestudy_20220205_06"
+              ? camdata_casestudy_20220205_06[entry.id]
+              : selectedDictionary === "camdata_casestudy_20240116_06"
+              ? camdata_casestudy_20240116_06[entry.id]
+              : selectedDictionary === "camdata_casestudy_20240116_18"
+              ? camdata_casestudy_20240116_18[entry.id]
+              : selectedDictionary === "camdata_casestudy_20240323_00"
+              ? camdata_casestudy_20240323_00[entry.id]
+              : selectedDictionary === "camdata_casestudy_20240323_06"
+              ? camdata_casestudy_20240323_06[entry.id]
+              : selectedDictionary === "camdata_casestudy_20240323_12"
+              ? camdata_casestudy_20240323_12[entry.id]
+              : selectedDictionary === "camdata_casestudy_20240323_18"
+              ? camdata_casestudy_20240323_18[entry.id]
               : null
           ) ?? { final_model_pred: "NA", color: "black", confidence: "NA" };
 
@@ -161,73 +216,73 @@ const Map = (props) => {
 
   return (
 
-    <div>
+    <div style={{ marginTop: '0px', padding:'0px' }}>
       <h1>{getTitle()}</h1>
       <div id="color-key">
         <ul style={{ listStyleType: 'none', padding: 0 }}>
-          <li style={{ marginBottom: '12px' }}>
+          <li style={{ marginBottom: '5px' }}>
             <input
               type="checkbox"
               name="snow_severe"
               checked={conditions.snow_severe}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'red', padding: '5px', color: 'white', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'red', padding: '3px', color: 'white', borderRadius: '5px' }}>
               Severe snow
             </span>
           </li>
-          <li style={{ marginBottom: '12px' }}>
+          <li style={{ marginBottom: '5px' }}>
             <input
               type="checkbox"
               name="snow"
               checked={conditions.snow}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'palevioletred', padding: '5px', color: 'white', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'palevioletred', padding: '3px', color: 'white', borderRadius: '5px' }}>
               Snow
             </span>
           </li>
-          <li style={{ marginBottom: '12px' }}>
+          <li style={{ marginBottom: '5px' }}>
             <input
               type="checkbox"
               name="wet"
               checked={conditions.wet}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'dodgerblue', padding: '5px', color: 'white', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'dodgerblue', padding: '3px', color: 'white', borderRadius: '5px' }}>
               Wet
             </span>
           </li>
-          <li style={{ marginBottom: '12px' }}>
+          <li style={{ marginBottom: '5px' }}>
             <input
               type="checkbox"
               name="dry"
               checked={conditions.dry}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'green', padding: '5px', color: 'white', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'green', padding: '3px', color: 'white', borderRadius: '5px' }}>
               Dry
             </span>
           </li>
-          <li style={{ marginBottom: '12px' }}>
+          <li style={{ marginBottom: '5px' }}>
             <input
               type="checkbox"
               name="poor_viz"
               checked={conditions.poor_viz}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'purple', color: 'lightgray', padding: '5px', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'purple', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
               Poor visibility
             </span>
           </li>
-          <li style={{ marginBottom: '12px' }}>
+          <li style={{ marginBottom: '5px' }}>
             <input
               type="checkbox"
               name="obs"
               checked={conditions.obs}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'darkblue', color: 'lightgray', padding: '5px', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'darkblue', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
               Obstructed
             </span>
           </li>
@@ -237,16 +292,28 @@ const Map = (props) => {
       </div>
       <select onChange={handleDictionaryChange} value={selectedDictionary}>
         <option value="camdata_current">Current (using camera)</option>
-        <option value="camdata_casestudy">Case study example</option>
-        <option value="camdata_future">Future (using forecast)</option>
+        {/* <option value="camdata_casestudy">Case study example</option> */}
+        <option value="camdata_casestudy_20220203_06">Case study: Feb 3 2022 1am EST</option>
+        <option value="camdata_casestudy_20220203_18">Case study: Feb 3 2022 1pm EST</option>
+        <option value="camdata_casestudy_20220204_06">Case study: Feb 4 2022 1am EST</option>
+        <option value="camdata_casestudy_20220204_18">Case study: Feb 4 2022 1pm EST</option>
+        <option value="camdata_casestudy_20220205_06">Case study: Feb 5 2022 1am EST</option>
+        <option value="camdata_casestudy_20240116_06">Case study: Jan 16 2024 1am EST</option>
+        <option value="camdata_casestudy_20240116_18">Case study: Jan 16 2024 1pm EST</option>
+    
+        <option value="camdata_casestudy_20240323_00">Case study: Mar 23 2024 5am EST</option>
+        <option value="camdata_casestudy_20240323_06">Case study: Mar 23 2024 11am EST</option>
+        <option value="camdata_casestudy_20240323_12">Case study: Mar 23 2024 5pm EST</option>
+        <option value="camdata_casestudy_20240323_18">Case study: Mar 23 2024 11pm EST</option>
+        {/* <option value="camdata_future">Future (using forecast)</option> */}
         {/* <option value="camdata_future60">Future: 60 min forecast (using weather forecast)</option> */} 
         {/* Past: 60 min ago (using camera) */}
       </select>
       <div
         ref={mapContainer}
         style={{
-          width: '80vw',
-          height: '80vh',
+          width: '70vw',
+          height: '75vh',
           position: 'relative',
         }}
       >
