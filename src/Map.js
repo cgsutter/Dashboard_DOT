@@ -3,80 +3,98 @@ import React, { useState, useRef, useEffect } from 'react';
 import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
-import camdata_current from "../data/dot_cam_current.js"
-// import camdata_current from "../data/dot_cam_current.js"; 
-import camdata_casestudy from "../data/dot_cam_casestudy.js";
-import camdata_casestudy_20220203_06 from "../data/case_20220203_06.js"
-import camdata_casestudy_20220203_18 from "../data/case_20220203_18.js"
-import camdata_casestudy_20220204_06 from "../data/case_20220204_06.js"
-import camdata_casestudy_20220204_18 from "../data/case_20220204_18.js"
-import camdata_casestudy_20220205_06 from "../data/case_20220205_06.js"
-import camdata_casestudy_20240116_06 from "../data/case_20240116_06.js"
-import camdata_casestudy_20240116_18 from "../data/case_20240116_18.js"
 
-import camdata_casestudy_20240323_00 from "../data/case_20240323_00.js"
-import camdata_casestudy_20240323_06 from "../data/case_20240323_06.js"
-import camdata_casestudy_20240323_12 from "../data/case_20240323_12.js"
-import camdata_casestudy_20240323_18 from "../data/case_20240323_18.js"
-
-import camdata_prior60 from "../data/dot_cam_latlon_color_prior60min.js";
-import camdata_future60 from "../data/dot_cam_latlon_color_future60min.js";
-import camdata_casestudy1a from "../data/dot_cam_latlon_color_casestudy_1a.js";
-// import camdata_casestudy1b from "../data/dot_cam_latlon_color_casestudy_1b.js";
-// import camdata_casestudy2a from "../data/dot_cam_latlon_color_casestudy_2a.js";
-// import camdata_casestudy2b from "../data/dot_cam_latlon_color_casestudy_2b.js";
-import ColorKey from './ColorKey.js';
 import { api_token_mapbox } from '../credentials.js';
-// const token = MY_CONSTANT
+// const token = MY_CONSTANT 
 mapboxgl.accessToken = api_token_mapbox;
 
+import axios from 'axios';
 
 
 const Map = (props) => {
   const mapContainer = useRef(null);
   const { state } = props;
   const [toggle, setToggle] = useState(true); // Add a state variable for the toggle
-  const [selectedDictionary, setSelectedDictionary] = useState('camdata_current');
+  const [selectedDictionary, setSelectedDictionary] = useState('dot_cam_current');
+  const [data, setData] = useState({}); // State to store API data
+
+  console.log('print dictionary here')
+  console.log(selectedDictionary)
+  // const fetchData = async () => {
+  //   try {
+  //     const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001/data?param=${selectedDictionary}`, {
+  //     mode: 'no-cors', // Disable CORS
+  //     });
+  //     // const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001/data?param=${selectedDictionary}`);
+  //     const data_readfromapi = await response.json();
+  //     console.log('try printing in map when pulling data from api');
+  //     setData(data_readfromapi); // Update data state
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
+
+  const fetchData = async () => {
+    try {
+      console.log("beginning fetch")
+      const response = await fetch('https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001', {
+        method: 'GET',
+        credentials: 'include', // Include cookies
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      // fetch(`https://xcitemain.asrc.albany.edu/rnode/appsvr/3001/data?param=dot_cam_current`, {
+      //   // mode: 'no-cors',
+      // }).then(async (res)=> console.log('res',res));
+      console.log("got through await fetch")
+      console.log('Response Type:', typeof response); // "object"
+      console.log('Response Constructor:', response.constructor.name); // "Response"
+      console.log(response["NYSDOT_4861013"])
+      console.log('Response Status Text:', response.statusText);
+      console.log('Response Headers:', response.headers);
+      console.log('Response Body Used:', response.bodyUsed);
+      console.log(response.ok)
+      console.log(response.status)
+
+      const data_readfromapi = await response.json();
+      console.log("got through await response")
+      // console.log('Data Type:', typeof data_readfromapi); // "object"
+      // console.log('JSON Data:', data_readfromapi);
+      console.log('try printing in map when pulling data from api');
+      console.log('JSON Data:', data_readfromapi);
+      setData(data_readfromapi); // Update data state
+      // const dataReadFromAPI = await response.text(); // Change to text()
+      // console.log('API Response:', dataReadFromAPI);
+      // const jsonData = JSON.parse(dataReadFromAPI); // Attempt parsing
+      // setData(jsonData);
+    } catch (error) {
+      console.error('API Error:', error.message);
+    }
+  };
+
+
+  useEffect(() => {
+    console.log('Component rendered, fetch should occur');
+    console.log('selectedDictionary:', selectedDictionary);
+    fetchData();
+  }, [selectedDictionary]);
 
   const getTitle = () => {
     switch (selectedDictionary) {
-      case 'camdata_current':
+      case 'dot_cam_current':
         return 'Current road surface conditions';
-      // case 'camdata_casestudy':
-      //   return 'Case study example of road surface conditions';
       case 'camdata_casestudy_20220203_06':
         return 'Case Study: Feb 3 2022 at 1am EST';
       case 'camdata_casestudy_20220203_18':
         return 'Case Study: Feb 3 2022 at 1pm EST';
-      case 'camdata_casestudy_20220204_06':
-        return 'Case Study: Feb 4 2022 at 1am EST';
-      case 'camdata_casestudy_20220204_18':
-        return 'Case Study: Feb 4 2022 at 1pm EST';
-      case 'camdata_casestudy_20220205_06':
-      return 'Case Study: Feb 5 2022 at 1am EST';
-      case 'camdata_casestudy_20240116_06':
-        return 'Case Study: Jan 16 2024 at 1am EST';
-      case 'camdata_casestudy_20240116_18':
-        return 'Case Study: Jan 16 2024 at 1pm EST';
-      case 'camdata_casestudy_20240323_00':
-        return 'Case Study: Mar 23 2024 at 5am EST';
-      case 'camdata_casestudy_20240323_06':
-        return 'Case Study: Mar 23 2024 at 11am EST';
-      case 'camdata_casestudy_20240323_12':
-        return 'Case Study: Mar 23 2024 at 5pm EST';
-      case 'camdata_casestudy_20240323_18':
-        return 'Case Study: Mar 23 2024 at 11pm EST';
-      // Add more cases as needed
       default:
         return 'Road surface conditions';
     }
   };
 
-  console.log("PRINT COLOR")
-  // console.log(camdata_current['Skyline_5996'].color)
-  // console.log("try logging here")
-  // console.log(camdata_current[entry.id])
 
+  
   const [conditions, setConditions] = useState({
     snow_severe: true,
     snow: true,
@@ -124,18 +142,6 @@ const Map = (props) => {
       });
     });
 
-
-    // Add markers - original
-
-    // const conditionOrder = [
-    //   "snow_severe",
-    //   "snow",
-    //   "wet",
-    //   "dry",
-    //   "poor_viz",
-    //   "obs",
-    // ];
-
     // Loop through the conditions in the specified orderconditionOrder.forEach((condition) => {
     // Add markers - original
     if (Array.isArray(camdata)) {
@@ -151,34 +157,8 @@ const Map = (props) => {
       conditionOrder.forEach((condition) => {
         camdata.forEach((entry) => {
           const rscData = (
-            selectedDictionary === "camdata_current"
-              ? camdata_current[entry.id]
-              // : selectedDictionary === "camdata_casestudy"
-              // ? camdata_casestudy[entry.id]
-              : selectedDictionary === "camdata_casestudy_20220203_06"
-              ? camdata_casestudy_20220203_06[entry.id]
-              : selectedDictionary === "camdata_casestudy_20220203_18"
-              ? camdata_casestudy_20220203_18[entry.id]
-              : selectedDictionary === "camdata_casestudy_20220204_06"
-              ? camdata_casestudy_20220204_06[entry.id]
-              : selectedDictionary === "camdata_casestudy_20220204_18"
-              ? camdata_casestudy_20220204_18[entry.id]
-              : selectedDictionary === "camdata_casestudy_20220205_06"
-              ? camdata_casestudy_20220205_06[entry.id]
-              : selectedDictionary === "camdata_casestudy_20240116_06"
-              ? camdata_casestudy_20240116_06[entry.id]
-              : selectedDictionary === "camdata_casestudy_20240116_18"
-              ? camdata_casestudy_20240116_18[entry.id]
-              : selectedDictionary === "camdata_casestudy_20240323_00"
-              ? camdata_casestudy_20240323_00[entry.id]
-              : selectedDictionary === "camdata_casestudy_20240323_06"
-              ? camdata_casestudy_20240323_06[entry.id]
-              : selectedDictionary === "camdata_casestudy_20240323_12"
-              ? camdata_casestudy_20240323_12[entry.id]
-              : selectedDictionary === "camdata_casestudy_20240323_18"
-              ? camdata_casestudy_20240323_18[entry.id]
-              : null
-          ) ?? { final_model_pred: "NA", color: "black", confidence: "NA" };
+            data[entry.id] ?? { final_model_pred: "NA", color: "black", confidence: "NA" }
+          );
 
           if (rscData.final_model_pred === condition && conditions[condition.toLowerCase()]) {
             const el = document.createElement("div");
@@ -291,23 +271,10 @@ const Map = (props) => {
         </ul>
       </div>
       <select onChange={handleDictionaryChange} value={selectedDictionary}>
-        <option value="camdata_current">Current (using camera)</option>
+        <option value="dot_cam_current">Current (using camera)</option>
         {/* <option value="camdata_casestudy">Case study example</option> */}
         <option value="camdata_casestudy_20220203_06">Case study: Feb 3 2022 1am EST</option>
         <option value="camdata_casestudy_20220203_18">Case study: Feb 3 2022 1pm EST</option>
-        <option value="camdata_casestudy_20220204_06">Case study: Feb 4 2022 1am EST</option>
-        <option value="camdata_casestudy_20220204_18">Case study: Feb 4 2022 1pm EST</option>
-        <option value="camdata_casestudy_20220205_06">Case study: Feb 5 2022 1am EST</option>
-        <option value="camdata_casestudy_20240116_06">Case study: Jan 16 2024 1am EST</option>
-        <option value="camdata_casestudy_20240116_18">Case study: Jan 16 2024 1pm EST</option>
-    
-        <option value="camdata_casestudy_20240323_00">Case study: Mar 23 2024 5am EST</option>
-        <option value="camdata_casestudy_20240323_06">Case study: Mar 23 2024 11am EST</option>
-        <option value="camdata_casestudy_20240323_12">Case study: Mar 23 2024 5pm EST</option>
-        <option value="camdata_casestudy_20240323_18">Case study: Mar 23 2024 11pm EST</option>
-        {/* <option value="camdata_future">Future (using forecast)</option> */}
-        {/* <option value="camdata_future60">Future: 60 min forecast (using weather forecast)</option> */} 
-        {/* Past: 60 min ago (using camera) */}
       </select>
       <div
         ref={mapContainer}
