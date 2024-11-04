@@ -18,8 +18,9 @@ const Map = (props) => {
   const [selectedDictionary, setSelectedDictionary] = useState('dot_cam_current');
   const [data, setData] = useState({}); // State to store API data
 
-  console.log('print dictionary here')
-  console.log(selectedDictionary)
+
+
+
   // const fetchData = async () => {
   //   try {
   //     const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001/data?param=${selectedDictionary}`, {
@@ -34,21 +35,36 @@ const Map = (props) => {
   //   }
   // };
 
+  const handleDictionaryChange = (event) => {
+    setSelectedDictionary(event.target.value);
+  };
+
+  // console.log('print dictionary here')
+  // console.log(selectedDictionary)
+
+
   const fetchData = async () => {
     try {
       console.log("beginning fetch")
-      const response = await fetch('https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001', {
+      console.log(selectedDictionary)
+      // const response = await fetch('https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001', {
+      //   method: 'GET',
+      //   credentials: 'include', // Include cookies
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   }
+      // })
+      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=${selectedDictionary}`, {
         method: 'GET',
-        credentials: 'include', // Include cookies
+        // credentials: 'include', // Include cookies
         headers: {
           'Content-Type': 'application/json'
         }
-      })
-      // fetch(`https://xcitemain.asrc.albany.edu/rnode/appsvr/3001/data?param=dot_cam_current`, {
-      //   // mode: 'no-cors',
-      // }).then(async (res)=> console.log('res',res));
+      }).then(async (res)=> await console.log('res',res.json()));
       console.log("got through await fetch")
+      //comment out response parts to get UI to load
       console.log('Response Type:', typeof response); // "object"
+      console.log('Response Type22:', typeof response); // "object"
       console.log('Response Constructor:', response.constructor.name); // "Response"
       console.log(response["NYSDOT_4861013"])
       console.log('Response Status Text:', response.statusText);
@@ -56,9 +72,11 @@ const Map = (props) => {
       console.log('Response Body Used:', response.bodyUsed);
       console.log(response.ok)
       console.log(response.status)
-
       const data_readfromapi = await response.json();
       console.log("got through await response")
+
+
+
       // console.log('Data Type:', typeof data_readfromapi); // "object"
       // console.log('JSON Data:', data_readfromapi);
       console.log('try printing in map when pulling data from api');
@@ -79,6 +97,13 @@ const Map = (props) => {
     console.log('selectedDictionary:', selectedDictionary);
     fetchData();
   }, [selectedDictionary]);
+
+  // const handleDictionaryChange = (event) => {
+  //   setSelectedDictionary(event.target.value);
+  // };
+
+  console.log('print dictionary here')
+  console.log(selectedDictionary)
 
   const getTitle = () => {
     switch (selectedDictionary) {
@@ -190,9 +215,8 @@ const Map = (props) => {
     }
   }, [mapContainer, props.state.lng, props.state.lat]);
 
-  const handleDictionaryChange = (event) => {
-    setSelectedDictionary(event.target.value);
-  };
+  //  handle change was here
+
 
   return (
 

@@ -18,14 +18,14 @@ module.exports = {
     //     changeOrigin: true
     //   }
     // },
-    port: 3030, // you can change the port
+    port: 3039, // you can change the port
     allowedHosts: 'all',
     // historyApiFallBack: {index: '/'},
     headers: {
       // "Access-Control-Allow-Origin": "http://localhost:3001,https://xcitemain.asrc.albany.edu/rnode/appsvr/3001",
       // "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS","Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization",
       // 'Access-Control-Allow-Credentials': 'true'
-      'Access-Control-Allow-Origin': 'https://xcitemain.asrc.albany.edu/rnode/hulk/3001/data?param=dot_cam_current',
+      'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
       'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
       'Access-Control-Allow-Credentials': 'true'
