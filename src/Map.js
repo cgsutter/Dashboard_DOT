@@ -10,14 +10,14 @@ mapboxgl.accessToken = api_token_mapbox;
 
 import axios from 'axios';
 
-
+// This entire Map function is called on in App.js. Inputs are props (state) which is macro map details, like centered lat/lon and zoom. 
 const Map = (props) => {
   const mapContainer = useRef(null);
-  const { state } = props;
-  const [toggle, setToggle] = useState(true); // Add a state variable for the toggle
-  const [selectedDictionary, setSelectedDictionary] = useState('dot_cam_current'); // setSelectedDictionary is the function that that runs to change selectedDictionary
-  const [data, setData] = useState({}); // State to store API data
+  const { state } = props; 
+  const [selectedDictionary, setSelectedDictionary] = useState('dot_cam_current'); // selectedDictionary is the for the corresponding case that the user selected
+  const [data, setData] = useState({}); // Based on the selectedDictionary, load the corresponding data using the API and store it in data
 
+  // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
     switch (selectedDictionary) {
       case 'dot_cam_current':
@@ -31,40 +31,41 @@ const Map = (props) => {
     }
   };
 
+  // First: set up how to handle user interaction (dropdown of cases, or selection checkboxes of classes)
 
-  // const fetchData = async () => {
-  //   try {
-  //     const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001/data?param=${selectedDictionary}`, {
-  //     mode: 'no-cors', // Disable CORS
-  //     });
-  //     // const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001/data?param=${selectedDictionary}`);
-  //     const data_readfromapi = await response.json();
-  //     console.log('try printing in map when pulling data from api');
-  //     setData(data_readfromapi); // Update data state
-  //   } catch (error) {
-  //     console.error(error);
-  //   }
-  // };
+  // Set which conditions to map. Initially, only map the 4 main ones
+  const [conditions, setConditions] = useState({
+    snow_severe: true,
+    snow: true,
+    wet: true,
+    dry: true,
+    poor_viz: true,
+    obs: true,
+  });
 
+  // Related to above, define this function to handle changes to the road surface condition check boxes based on user interaction on dashbaord
+  const handleConditionChange = (event) => {
+    setConditions((prevConditions) => ({
+      ...prevConditions,
+      [event.target.name]: event.target.checked,
+    }));
+  };
+
+  console.log("log conditions")
+  console.log(conditions)
+
+  // Define this function to handle whichever case the user wants to map, based on their selection from the dropdown dashbaord
   const handleDictionaryChange = (event) => {
     setSelectedDictionary(event.target.value);
   };
 
-  // console.log('print dictionary here')
-  // console.log(selectedDictionary)
+  // Second: Load in the data
 
-
+  // Define this function that, when called on (see useEffect later) will load the corresponding data based on user selection
   const fetchData = async () => {
     try {
       console.log("beginning fetch")
       console.log(selectedDictionary)
-      // const response = await fetch('https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3001', {
-      //   method: 'GET',
-      //   credentials: 'include', // Include cookies
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   }
-      // })
       const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=${selectedDictionary}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
@@ -105,58 +106,31 @@ const Map = (props) => {
     }
   };
 
-
+  // Load the data
+  // Do this by calling the fetchdata function when selectedDictionary changes (based on user intraction), and do this by using the built in React useEffect feature
   useEffect(() => {
     console.log('Component rendered, fetch should occur');
     console.log('selectedDictionary:', selectedDictionary);
     fetchData();
   }, [selectedDictionary]);
+    
 
-  console.log("print data")
-  console.log(data)
+  // Third: plot the map. Make two helper functions to break up the code from useEffect (1, the map basics and 2, the plotted RSC points)
 
-  // const handleDictionaryChange = (event) => {
-  //   setSelectedDictionary(event.target.value);
-  // };
-
-  // console.log('print dictionary here')
-  // console.log(selectedDictionary)
-
-
-
+  // Define helper function to set up the map basics, Later, will be called on in useEffect later when data changes, which relies on when user changes dictionary. 
   
-  const [conditions, setConditions] = useState({
-    snow_severe: true,
-    snow: true,
-    wet: true,
-    dry: true,
-    poor_viz: true,
-    obs: true,
-  });
-
-  const handleConditionChange = (event) => {
-    setConditions((prevConditions) => ({
-      ...prevConditions,
-      [event.target.name]: event.target.checked,
-    }));
-  };
-
-  console.log("log conditions")
-  console.log(conditions)
-
-  useEffect(() => {
+  const setupMap = (container, state) => {
     const map = new mapboxgl.Map({
-      container: mapContainer.current,
+      container: container,
       style: 'mapbox://styles/mapbox/light-v9',
       attributionControl: false,
       center: [state.lng, state.lat],
       zoom: state.zoom,
-      // alignItems: "top"
-    });
-
+    }); // built in mapbox function to make it
+  
     // Add navigation control
     map.addControl(new mapboxgl.NavigationControl());
-
+  
     // Add roadways layer
     map.on('load', () => {
       map.addLayer({
@@ -174,72 +148,56 @@ const Map = (props) => {
         }
       });
     });
+  
+    return map;
+  };
 
-    // Loop through the conditions in the specified orderconditionOrder.forEach((condition) => {
-    // Add markers - original
-    if (Array.isArray(camdata)) {
-      const conditionOrder = [
-        "obs",
-        "poor_viz",
-        "dry",
-        "wet",
-        "snow",
-        "snow_severe",
-      ];
-
-      // plot each dot of conditions on layered order (most severe up top)
-      // e.g. all the dry conditions, grab cam entries who have dry condition, and plot them. Do this for each condition (the .forEach is essentially a loop)
-      conditionOrder.forEach((condition) => {
-        camdata.forEach((entry) => {
-          // for each lat lon in camdata (which is just site, lat, lon), grab the corresponding conditions from the clasification dictionary (setData) by grabbing the key entry.id and its corresponding values 
-          const rscData = (
-            data[entry.id] ?? { final_model_pred: "NA", color: "black", confidence: "NA" }
-          );
-          // check if the classification is the condition that we're currently looping through (can probably rearrange this code eventually since this could be outside the main loop)
-          if (rscData.final_model_pred === condition && conditions[condition.toLowerCase()]) {
-            const el = document.createElement("div");
-            el.className = "marker";
-            el.style.background = rscData.color;
-            el.style.width = "10px";
-            el.style.height = "10px";
-            el.style.borderRadius = "50%";
-
-            new mapboxgl.Marker(el)
-              .setLngLat([entry.lon, entry.lat])
-              .setPopup(
-                new mapboxgl.Popup().setHTML(
-                  `ID: ${entry.id} <br> Condition: ${rscData.final_model_pred} <br>  Confidence: ${rscData.confidence}`
-                )
+  // Define helper function to plot points and the model RSCs
+  const setupPlotPoints = (map, camdata, data, conditions, conditionOrder) => {
+    conditionOrder.forEach((condition) => {
+      camdata.forEach((entry) => {
+        const rscData = (
+          data[entry.id] ?? { final_model_pred: "NA", color: "black", confidence: "NA" }
+        );
+  
+        if (rscData.final_model_pred === condition && conditions[condition.toLowerCase()]) {
+          const el = document.createElement("div");
+          el.className = "marker";
+          el.style.background = rscData.color;
+          el.style.width = "10px";
+          el.style.height = "10px";
+          el.style.borderRadius = "50%";
+  
+          new mapboxgl.Marker(el)
+            .setLngLat([entry.lon, entry.lat])
+            .setPopup(
+              new mapboxgl.Popup().setHTML(
+                `ID: ${entry.id} <br> Condition: ${rscData.final_model_pred} <br>  Confidence: ${rscData.confidence}`
               )
-              .addTo(map);
-          }
-        });
+            )
+            .addTo(map);
+        }
       });
-    }
+    });
+  };
 
+  useEffect(() => {
+    const map = setupMap(mapContainer.current, state);
+    setupPlotPoints(map, camdata, data, conditions, [
+      "obs", "poor_viz", "dry", "wet", "snow", "snow_severe"
+    ]);
+  
     return () => map.remove();
-  }, [state, toggle, selectedDictionary, conditions]);
-// [state, toggle, selectedDictionary, conditions]
-  console.log("log state")
-  console.log(state)
-  console.log("log toggle")
-  console.log(toggle)
+  }, [state, data, conditions]); // update if the state changes (i.e. if map should be centered differently), but most commonly, update if the user defined selections change, either 1) the selected dropdown case, which affects the dictionary name, which affects the data to read in, and 2) which RSC classes to change
+
   console.log("log selectedDictionar")
   console.log(selectedDictionary)
   console.log("log conditions")
   console.log(conditions)
-  useEffect(() => {
-    if (mapContainer.current && props.state.lng && props.state.lat) {
-      // mapContainer.current.style.height = '750px'; 
-    }
-  }, [mapContainer, props.state.lng, props.state.lat]);
-
-  //  handle change was here
-
 
   return (
 
-    <div style={{ marginTop: '0px', padding:'0px' }}>
+    <div style={{ marginTop: '0px', padding: '0px' }}>
       <h1>{getTitle()}</h1>
       <div id="color-key">
         <ul style={{ listStyleType: 'none', padding: 0 }}>
@@ -310,7 +268,7 @@ const Map = (props) => {
             </span>
           </li>
 
-        
+
         </ul>
       </div>
       <select onChange={handleDictionaryChange} value={selectedDictionary}>
