@@ -14,7 +14,7 @@ const Map = (props) => {
   const mapContainer = useRef(null);
   const { state } = props; 
   // const [autoUpdate, setAutoUpdate] = useState(false); // Track if auto-update is enabled
-  const [selectedDictionary, setSelectedDictionary] = useState('dot_cam_current'); // selectedDictionary is the for the corresponding case that the user selected
+  const [selectedDictionary, setSelectedDictionary] = useState('camlocs_current'); // selectedDictionary is the for the corresponding case that the user selected
   const [selectedFCSTDictionary, setSelectedFCSTDictionary] = useState('FCST_current'); // equivalent of the above but for fcst data
   const [data, setData] = useState({}); // Based on the selectedDictionary, load the corresponding data using the API and store it in data
   const [FCSTdata, setFCSTData] = useState({}); // equivalent of the above but for fcst data
@@ -23,7 +23,7 @@ const Map = (props) => {
   // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
     switch (selectedDictionary) {
-      case 'dot_cam_current':
+      case 'camlocs_current':
         return 'Current road surface conditions';
       case 'camdata_casestudy_20220203_06':
         return 'Case Study: Feb 3 2022 at 1am EST';
@@ -339,50 +339,46 @@ const Map = (props) => {
       }
     });
   };
+
+
+  const parseLatLon = (latLonStr) => {
+    const [lat, lon] = latLonStr.split('_');
+    return [parseFloat(lat), parseFloat(lon)];
+  };
+
+  const convertDataToDots = (data) => {
+    return Object.keys(data).map((key) => {
+      const [lat, lon] = parseLatLon(key);
+      // const [lat, lon] = key.split(',');
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [lon, lat],
+        },
+        properties: {
+          color: data[key].color,
+        },
+      };
+    });
+  };
     
 
   useEffect(() => {
     if (!mapInstance) return; // Ensure mapInstance is ready
 
-    // // Convert FCSTdata to GeoJSON
-    // const geoJSONData = convertDataToGeoJSON(FCSTdata);
-  
-    // // **1. Manage forecast gradient (FCST) source and layer**
-    // if (mapInstance.getSource('points')) {
-    //   // Update the data if the source already exists
-    //   mapInstance.getSource('points').setData(geoJSONData);
-    // } else {
-    //   // Create the source and layer if they don't exist
-    //   mapInstance.addSource('points', {
-    //     type: 'geojson',
-    //     data: geoJSONData,
-    //   });
-  
-    //   mapInstance.addLayer({
-    //     id: 'point-layer',
-    //     type: 'circle',
-    //     source: 'points',
-    //     paint: {
-    //       'circle-color': ['get', 'color'],
-    //       'circle-radius': 10,
-    //       'circle-opacity': 0.2,
-    //       'circle-blur': 1,
-    //     },
-    //   });
-    // }
-
-    // repeat for cam locations 
-    const geoJSONData_camlocs = convertDataToGeoJSON(data);
+    // Convert FCSTdata to GeoJSON
+    const geoJSONData = convertDataToGeoJSON(FCSTdata);
   
     // **1. Manage forecast gradient (FCST) source and layer**
     if (mapInstance.getSource('points')) {
       // Update the data if the source already exists
-      mapInstance.getSource('points').setData(geoJSONData_camlocs);
+      mapInstance.getSource('points').setData(geoJSONData);
     } else {
       // Create the source and layer if they don't exist
       mapInstance.addSource('points', {
         type: 'geojson',
-        data: geoJSONData_camlocs,
+        data: geoJSONData,
       });
   
       mapInstance.addLayer({
@@ -391,23 +387,84 @@ const Map = (props) => {
         source: 'points',
         paint: {
           'circle-color': ['get', 'color'],
-          'circle-radius': 1,
-          'circle-opacity': 1,
+          'circle-radius': 10,
+          'circle-opacity': 0.2,
           'circle-blur': 1,
         },
       });
     }
+
+    // 2 manage adding cam level dots
+    const dotsData = convertDataToDots(data);
+    console.log("DOTS DATA!!")
+    console.log(dotsData)
+
+    if (mapInstance.getSource('dots')) {
+      mapInstance.getSource('dots').setData({
+        type: 'FeatureCollection',
+        features: dotsData,
+      });
+    } else {
+      mapInstance.addSource('dots', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: dotsData,
+        },
+      });
   
-    // Step 3: Handle camdata and update markers for each condition
-    // const markers = setupPlotPoints(mapInstance, camdata, data, conditions);
-    // markers.forEach((marker) => marker.addTo(mapInstance)); // Add all markers to the map
-  
+      mapInstance.addLayer({
+        id: 'dots-layer',
+        type: 'circle',
+        source: 'dots',
+        paint: {
+          'circle-color': ['get', 'color'],
+          'circle-radius': 5, // Adjust radius as needed
+          'circle-opacity': 1, // Adjust opacity as needed
+        },
+        // Ensure dots are on top of other layers
+        'layer-index': 2, // Adjust index as needed
+      });
+    }
+
+
     return () => {
       if (mapInstance) {
         mapInstance.off('load'); // Clean up event listeners when component is unmounted or mapInstance changes
-      }
-    };
+    }
+  };
   }, [mapInstance, FCSTdata, camdata, data, conditions]); // Re-run when any of these data dependencies change
+
+// REMOVE OUT HERE
+  // // repeat for cam locations 
+  // const geoJSONData_camlocs = convertDataToGeoJSON(data);
+  
+  // // **1. Manage forecast gradient (FCST) source and layer**
+  // if (mapInstance.getSource('points')) {
+  //   // Update the data if the source already exists
+  //   mapInstance.getSource('points').setData(geoJSONData_camlocs);
+  // } else {
+  //   // Create the source and layer if they don't exist
+  //   mapInstance.addSource('points', {
+  //     type: 'geojson',
+  //     data: geoJSONData_camlocs,
+  //   });
+
+  //   mapInstance.addLayer({
+  //     id: 'point-layer',
+  //     type: 'circle',
+  //     source: 'points',
+  //     paint: {
+  //       'circle-color': ['get', 'color'],
+  //       'circle-radius': 10,
+  //       'circle-opacity': 1,
+  //       'circle-blur': 1,
+  //     },
+  //   });
+  // }
+  // Step 3: Handle camdata and update markers for each condition
+  // const markers = setupPlotPoints(mapInstance, camdata, data, conditions);
+  // markers.forEach((marker) => marker.addTo(mapInstance)); // Add all markers to the map
 
   // // Set up or update layers based on data changes
   // useEffect(() => {
