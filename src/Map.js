@@ -21,7 +21,7 @@ const Map = (props) => {
   const [mapInstance, setMapInstance] = useState(null);
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
-  const [showFCST, setShowFCST] = useState(false); // Toggle for FCST data
+  const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
 
   // Toggle handler for checkbox
   const handleToggleChange = () => {
@@ -481,9 +481,21 @@ const Map = (props) => {
     }
 
 
-    return () => {
-      if (mapInstance) {
-        mapInstance.off('load'); // Clean up event listeners when component is unmounted or mapInstance changes
+  // Cleanup function
+  return () => {
+    if (mapInstance) {
+      if (mapInstance.getLayer('point-layer')) {
+        mapInstance.removeLayer('point-layer');
+      }
+      if (mapInstance.getSource('points')) {
+        mapInstance.removeSource('points');
+      }
+      if (mapInstance.getLayer('dots-layer')) {
+        mapInstance.removeLayer('dots-layer');
+      }
+      if (mapInstance.getSource('dots')) {
+        mapInstance.removeSource('dots');
+      }
     }
   };
   }, [mapInstance, FCSTdata, camdata, data, conditions, showFCST]); // Re-run when any of these data dependencies change
@@ -625,9 +637,34 @@ const Map = (props) => {
 
     <div style={{ marginTop: '0px', padding: '0px' }}>
       <h1>{`${getTitle()}`}</h1>
-      <h3>{`Updated at:`}</h3>
-      <h3>{`${lastUpdateCam} for camera locations`}</h3>
-      <h3>{`${lastUpdateFCST} for everywhere else`}</h3>
+      {/* <h3>{`Updated at:`}</h3> */}
+      {/* <h3>{`Colo`}</h3> */}
+      <h3 style={{ margin: '0', padding: '0'}}>{`Colored Dots: NYSDOT Camera Locations`}</h3>
+      <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated at ${lastUpdateCam}`}</p>
+      {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
+      <h3 style={{ margin: '0', padding: '0'}}>{`Shading: All areas`}
+      {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
+        <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
+            <input
+              type="checkbox"
+              checked={showFCST}
+              onChange={(e) => setShowFCST(e.target.checked)}
+              // style={{ marginLeft: '5px' }}
+              style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+            />
+            {/* Show FCST Data  */}
+            {/*  uncomment above ^ to add checkbox name */}
+          </label>
+        </h3>
+      <p style={{margin: '0', padding: '0'}}>
+        {`${lastUpdateFCST} for everywhere else `}
+      </p>
+      {/* <div>
+        <label>
+          <input type="checkbox" checked={showFCST} onChange={handleToggleChange} />
+          Show FCST Data
+        </label>
+      </div> */}
       <div id="color-key">
         <ul style={{ listStyleType: 'none', padding: 0 }}>
           <li style={{ marginBottom: '5px' }}>
@@ -700,12 +737,14 @@ const Map = (props) => {
 
         </ul>
       </div>
+
       <select onChange={handleDictionaryChange} value={selectedDictionary}>
         <option value="camlocs_current">Current (using camera)</option>
         {/* <option value="camdata_casestudy">Case study example</option> */}
         <option value="camlocs_case_20220203_06">Case study: Feb 3 2022 1am EST</option>
         <option value="camlocs_case_20220203_18">Case study: Feb 3 2022 1pm EST</option>
       </select>
+      
       <div
         ref={mapContainer}
         style={{
@@ -720,13 +759,9 @@ const Map = (props) => {
         {/* Map will render here */}
       </div>
 
-      <div>
-        <label>
-          <input type="checkbox" checked={showFCST} onChange={handleToggleChange} />
-          Show FCST Data
-        </label>
-        <div id="mapContainer" style={{ width: '100%', height: '400px' }}></div>
-      </div>
+
+      {/*  */}
+      <div id="mapContainer" style={{ width: '100%', height: '400px' }}></div>
 
     
     </div>
