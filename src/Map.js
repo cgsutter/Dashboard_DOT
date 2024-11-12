@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
+import Tooltip from './Tooltip'; // Import the Tooltip component
+
 
 import { api_token_mapbox } from '../credentials.js';
 // const token = MY_CONSTANT 
@@ -21,25 +23,31 @@ const Map = (props) => {
   const [mapInstance, setMapInstance] = useState(null);
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
+  const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
 
-  // Toggle handler for checkbox
-  const handleToggleChange = () => {
-    setShowFCST(!showFCST);
-  };
+
+  // // Toggle handler for checkbox
+  // const handleToggleChange = () => {
+  //   setShowFCST(!showFCST);
+  // };
+
+  // const handleToggleChange = () => {
+  //   setShowdots(!showdots);
+  // };
 
 
   // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
     switch (selectedDictionary) {
       case 'camlocs_current':
-        return 'Current road surface conditions';
+        return 'Map: Current road surface conditions';
       case 'camlocs_case_20220203_06':
-        return 'Case Study: Feb 3 2022 at 1am EST';
+        return 'Map: Case Study: Feb 3 2022 at 1am EST';
       case 'camlocs_case_20220203_18':
-        return 'Case Study: Feb 3 2022 at 1pm EST';
+        return 'Map: Case Study: Feb 3 2022 at 1pm EST';
       default:
-        return 'Road surface conditions';
+        return 'Map: Road surface conditions';
     }
   };
 
@@ -438,47 +446,49 @@ const Map = (props) => {
 
     // 2 manage adding cam level dots
     const dotsData = convertDataToDots(data);
-    console.log("DOTS DATA!!")
-    console.log(dotsData)
 
-    if (mapInstance.getSource('dots')) {
-      mapInstance.getSource('dots').setData({
-        type: 'FeatureCollection',
-        features: dotsData,
-      });
-    } else {
-      mapInstance.addSource('dots', {
-        type: 'geojson',
-        data: {
+    if (showdots) {
+      console.log("DOTS DATA!!")
+      console.log(dotsData)
+
+      if (mapInstance.getSource('dots')) {
+        mapInstance.getSource('dots').setData({
           type: 'FeatureCollection',
           features: dotsData,
-        },
-      });
-  
-      mapInstance.addLayer({
-        id: 'dots-layer',
-        type: 'circle',
-        source: 'dots',
-        paint: {
-          'circle-color': ['get', 'color'],
-          'circle-radius': 5, // Adjust radius as needed
-          'circle-opacity': 1, // Adjust opacity as needed
-        },
-        // Ensure dots are on top of other layers
-        'before': 'point-layer', // Adjust index as needed
-      });
-
-      // Check if the layers have been added in the correct order
-      const layers = mapInstance.getStyle().layers;
-      const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer');
-      const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
-
-      // If the dots layer is below the FCST layer, we move it above
-      if (dotsLayerIndex < fcstLayerIndex) {
-        mapInstance.moveLayer( 'point-layer','dots-layer');
+        });
+      } else {
+        mapInstance.addSource('dots', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: dotsData,
+          },
+        });
+    
+        mapInstance.addLayer({
+          id: 'dots-layer',
+          type: 'circle',
+          source: 'dots',
+          paint: {
+            'circle-color': ['get', 'color'],
+            'circle-radius': 5, // Adjust radius as needed
+            'circle-opacity': 1, // Adjust opacity as needed
+          },
+          // Ensure dots are on top of other layers
+          'before': 'point-layer', // Adjust index as needed
+        });
       }
-      
+    // Check if the layers have been added in the correct order
+    const layers = mapInstance.getStyle().layers;
+    const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer');
+    const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
+
+    // If the dots layer is below the FCST layer, we move it above
+    if (dotsLayerIndex < fcstLayerIndex) {
+      mapInstance.moveLayer( 'point-layer','dots-layer');
     }
+    
+  }
 
 
   // Cleanup function
@@ -498,7 +508,7 @@ const Map = (props) => {
       }
     }
   };
-  }, [mapInstance, FCSTdata, camdata, data, conditions, showFCST]); // Re-run when any of these data dependencies change
+  }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]); // Re-run when any of these data dependencies change
 
 // REMOVE OUT HERE
   // // repeat for cam locations 
@@ -639,11 +649,26 @@ const Map = (props) => {
       <h1>{`${getTitle()}`}</h1>
       {/* <h3>{`Updated at:`}</h3> */}
       {/* <h3>{`Colo`}</h3> */}
-      <h3 style={{ margin: '0', padding: '0'}}>{`Colored Dots: NYSDOT Camera Locations`}</h3>
-      <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated at ${lastUpdateCam}`}</p>
+      <h3 style={{ margin: '0', padding: '0'}}>{`Colored Dots: NYSDOT Camera Locations`}
+        <Tooltip content="This option shows model-predicted road surface conditions for locations where there are camera images. Weather data is also incorporated." />
+        <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
+            <input
+              type="checkbox"
+              checked={showdots}
+              onChange={(e) => setShowdots(e.target.checked)}
+              // style={{ marginLeft: '5px' }}
+              style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+            />
+            {/* Show FCST Data  */}
+            {/*  uncomment above ^ to add checkbox name */}
+          </label>
+      </h3>
+      
+      <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p>
       {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
       <h3 style={{ margin: '0', padding: '0'}}>{`Shading: All areas`}
       {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
+        <Tooltip content="This option shows model-predicted road surface conditions for all geographic locations based on weather data only, no camera image." />
         <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
             <input
               type="checkbox"
@@ -655,9 +680,9 @@ const Map = (props) => {
             {/* Show FCST Data  */}
             {/*  uncomment above ^ to add checkbox name */}
           </label>
-        </h3>
+      </h3>
       <p style={{margin: '0', padding: '0'}}>
-        {`${lastUpdateFCST} for everywhere else `}
+        {`Last updated: ${lastUpdateFCST}`}
       </p>
       {/* <div>
         <label>
