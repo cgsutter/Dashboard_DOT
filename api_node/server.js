@@ -5,6 +5,10 @@ const port = 3009;
 const path = require('path');
 const fs = require('fs');
 
+// Function to get the last modified date of a file
+function getLastModifiedDate(filePath) {
+  return fs.statSync(filePath).mtimeMs;
+}
 
 const allowedOrigin = '*';
 const corsOptions = {
@@ -29,6 +33,21 @@ app.get('/data', (req, res) => {
   const fileNamewithext = fileName + '.js';
   const filePath = path.join(__dirname, 'data', fileNamewithext);
   console.log('filePath:', filePath);
+  const lastUpdated = getLastModifiedDate(filePath);
+  // const formattedLastUpdated = new Date(lastUpdated).toISOString();
+  // Format the date to New York time with AM/PM and timezone abbreviation (EDT/EST)
+  const formattedLastUpdated = new Date(lastUpdated).toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: true, // Enables AM/PM format
+    timeZoneName: "short" // Adds EDT/EST based on DST
+  });
+
 
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
@@ -39,7 +58,7 @@ app.get('/data', (req, res) => {
         const dictionaryData = JSON.parse(data);
         res.set('Content-Type', 'application/json');
         console.log('through setting res type');
-        res.json(dictionaryData);
+        res.json({"data":dictionaryData,"time":formattedLastUpdated}); //formattedLastUpdated
       } catch (parseError) {
         console.error(parseError);
         res.status(500).json({ message: 'Failed to parse JSON' });

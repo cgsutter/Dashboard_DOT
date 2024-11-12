@@ -19,15 +19,24 @@ const Map = (props) => {
   const [data, setData] = useState({}); // Based on the selectedDictionary, load the corresponding data using the API and store it in data
   const [FCSTdata, setFCSTData] = useState({}); // equivalent of the above but for fcst data
   const [mapInstance, setMapInstance] = useState(null);
+  const [lastUpdateCam, setLastUpdateCam] = useState(null);
+  const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
+  const [showFCST, setShowFCST] = useState(false); // Toggle for FCST data
+
+  // Toggle handler for checkbox
+  const handleToggleChange = () => {
+    setShowFCST(!showFCST);
+  };
+
 
   // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
     switch (selectedDictionary) {
       case 'camlocs_current':
         return 'Current road surface conditions';
-      case 'camdata_casestudy_20220203_06':
+      case 'camlocs_case_20220203_06':
         return 'Case Study: Feb 3 2022 at 1am EST';
-      case 'camdata_casestudy_20220203_18':
+      case 'camlocs_case_20220203_18':
         return 'Case Study: Feb 3 2022 at 1pm EST';
       default:
         return 'Road surface conditions';
@@ -100,33 +109,22 @@ const Map = (props) => {
       // .then(async (res)=> await console.log('res',res.json()));
       console.log("got through await fetch")
       // console.log(response.status)
+
+      if (!response.ok) {
+        console.error("Failed to fetch data:", response.statusText);
+        return;
+      }
      
-      const data_readfromapi = await response.json();
-      console.log("got through await response")
+      const apiResponse = await response.json();
+      console.log('API Response:', apiResponse); // Log API response
+      console.log("through here????")
 
-      //comment out response parts to get UI to load
-      // // print stuff to check it
-      // console.log('Full Response:', response);
-      // console.log('Response Type:', typeof response); // "object"
-      // console.log('Response Type22:', typeof response); // "object"
-      // console.log('Response Constructor:', response.constructor.name); // "Response"
-      // console.log(response["NYSDOT_4861013"])
-      // console.log('Response Status Text:', response.statusText);
-      // console.log('Response Headers:', response.headers);
-      // console.log('Response Body Used:', response.bodyUsed);
-      // console.log(response.ok)
-      // console.log(response.status)
-
-      // console.log('Data Type:', typeof data_readfromapi); // "object"
-      // console.log('JSON Data:', data_readfromapi);
       console.log('try printing in map when pulling data from api');
-      console.log('JSON Data CAMLEVEL:', data_readfromapi);
-      setData(data_readfromapi); // Update data state
-      // const dataReadFromAPI = await response.text(); // Change to text()
-      // console.log('API Response:', dataReadFromAPI);
-      // const jsonData = JSON.parse(dataReadFromAPI); // Attempt parsing
-      // setData(jsonData);
-      // console.log('after setdta should exist:', data);
+      console.log('JSON Data CAMLEVEL:', apiResponse.data);
+      console.log('TIME OF CAM DATA UPDATE:', apiResponse.time);
+      setData(apiResponse.data); // Update data state
+      setLastUpdateCam(apiResponse.time)
+
     } catch (error) {
       console.error('API Error:', error.message);
     }
@@ -147,13 +145,22 @@ const Map = (props) => {
       console.log("got through await fetch FCST")
       // console.log(response.status)
      
-      const data_readfromapi = await response.json();
-      console.log("got through await response FCST")
+      if (!response.ok) {
+        console.error("Failed to fetch data:", response.statusText);
+        return;
+      }
+     
+      const apiResponse = await response.json();
+      console.log('API Response:', apiResponse); // Log API response
+      console.log("through here????")
 
       // console.log('try printing in map when pulling data from api');
-      console.log('FCST JSON Data:', data_readfromapi);
-      setFCSTData(data_readfromapi);
+      console.log('FCST JSON Data:', apiResponse.data);
+      setFCSTData(apiResponse.data);
       console.log('after setFCST data FCSTdata should exist:', FCSTdata);
+      // console.log('here1')
+      console.log(apiResponse.time)
+      setLastUpdateFCST(apiResponse.time)
     } catch (error) {
       console.error('API Error:', error.message);
     }
@@ -370,29 +377,64 @@ const Map = (props) => {
     // Convert FCSTdata to GeoJSON
     const geoJSONData = convertDataToGeoJSON(FCSTdata);
   
-    // **1. Manage forecast gradient (FCST) source and layer**
-    if (mapInstance.getSource('points')) {
-      // Update the data if the source already exists
-      mapInstance.getSource('points').setData(geoJSONData);
-    } else {
-      // Create the source and layer if they don't exist
-      mapInstance.addSource('points', {
-        type: 'geojson',
-        data: geoJSONData,
-      });
+    // without if statement to check the showFCST button
+    // // **1. Manage forecast gradient (FCST) source and layer**
+    // if (mapInstance.getSource('points')) {
+    //   // Update the data if the source already exists
+    //   mapInstance.getSource('points').setData(geoJSONData);
+    // } else {
+    //   // Create the source and layer if they don't exist
+    //   mapInstance.addSource('points', {
+    //     type: 'geojson',
+    //     data: geoJSONData,
+    //   });
   
-      mapInstance.addLayer({
-        id: 'point-layer',
-        type: 'circle',
-        source: 'points',
-        paint: {
-          'circle-color': ['get', 'color'],
-          'circle-radius': 10,
-          'circle-opacity': 0.2,
-          'circle-blur': 1,
-        },
-      });
+    //   mapInstance.addLayer({
+    //     id: 'point-layer',
+    //     type: 'circle',
+    //     source: 'points',
+    //     paint: {
+    //       'circle-color': ['get', 'color'],
+    //       'circle-radius': 10,
+    //       'circle-opacity': 0.2,
+    //       'circle-blur': 1,
+    //     },
+    //   });
+    // }
+      // **1. Manage forecast gradient (FCST) source and layer**
+    if (showFCST) {
+      if (mapInstance.getSource('points')) {
+        // Update the data if the source already exists
+        mapInstance.getSource('points').setData(geoJSONData);
+      } else {
+        // Create the source and layer if they don't exist
+        mapInstance.addSource('points', {
+          type: 'geojson',
+          data: geoJSONData,
+        });
+
+        mapInstance.addLayer({
+          id: 'point-layer',
+          type: 'circle',
+          source: 'points',
+          paint: {
+            'circle-color': ['get', 'color'],
+            'circle-radius': 10,
+            'circle-opacity': 0.2,
+            'circle-blur': 1,
+          },
+        });
+      }
+    } else {
+      // Remove the FCST layer if it exists and showFCST is false
+      if (mapInstance.getLayer('point-layer')) {
+        mapInstance.removeLayer('point-layer');
+      }
+      if (mapInstance.getSource('points')) {
+        mapInstance.removeSource('points');
+      }
     }
+      
 
     // 2 manage adding cam level dots
     const dotsData = convertDataToDots(data);
@@ -423,8 +465,19 @@ const Map = (props) => {
           'circle-opacity': 1, // Adjust opacity as needed
         },
         // Ensure dots are on top of other layers
-        'layer-index': 2, // Adjust index as needed
+        'before': 'point-layer', // Adjust index as needed
       });
+
+      // Check if the layers have been added in the correct order
+      const layers = mapInstance.getStyle().layers;
+      const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer');
+      const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
+
+      // If the dots layer is below the FCST layer, we move it above
+      if (dotsLayerIndex < fcstLayerIndex) {
+        mapInstance.moveLayer( 'point-layer','dots-layer');
+      }
+      
     }
 
 
@@ -433,7 +486,7 @@ const Map = (props) => {
         mapInstance.off('load'); // Clean up event listeners when component is unmounted or mapInstance changes
     }
   };
-  }, [mapInstance, FCSTdata, camdata, data, conditions]); // Re-run when any of these data dependencies change
+  }, [mapInstance, FCSTdata, camdata, data, conditions, showFCST]); // Re-run when any of these data dependencies change
 
 // REMOVE OUT HERE
   // // repeat for cam locations 
@@ -571,7 +624,10 @@ const Map = (props) => {
   return (
 
     <div style={{ marginTop: '0px', padding: '0px' }}>
-      <h1>{getTitle()}</h1>
+      <h1>{`${getTitle()}`}</h1>
+      <h3>{`Updated at:`}</h3>
+      <h3>{`${lastUpdateCam} for camera locations`}</h3>
+      <h3>{`${lastUpdateFCST} for everywhere else`}</h3>
       <div id="color-key">
         <ul style={{ listStyleType: 'none', padding: 0 }}>
           <li style={{ marginBottom: '5px' }}>
@@ -625,7 +681,7 @@ const Map = (props) => {
               checked={conditions.poor_viz}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'purple', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'lightgray', color: 'black', padding: '3px', borderRadius: '5px' }}>
               Poor visibility
             </span>
           </li>
@@ -636,7 +692,7 @@ const Map = (props) => {
               checked={conditions.obs}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'darkblue', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'black', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
               Obstructed
             </span>
           </li>
@@ -664,6 +720,15 @@ const Map = (props) => {
         {/* Map will render here */}
       </div>
 
+      <div>
+        <label>
+          <input type="checkbox" checked={showFCST} onChange={handleToggleChange} />
+          Show FCST Data
+        </label>
+        <div id="mapContainer" style={{ width: '100%', height: '400px' }}></div>
+      </div>
+
+    
     </div>
   );
 
