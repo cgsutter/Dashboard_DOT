@@ -4,8 +4,8 @@ import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
 import Tooltip from './Tooltip'; // Import the Tooltip component
-import DatePicker from "react-datepicker"; // Install react-datepicker package
-import "react-datepicker/dist/react-datepicker.css"; // Import the styles
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";  // 
 
 import { api_token_mapbox } from '../credentials.js';
 // const token = MY_CONSTANT 
@@ -27,7 +27,7 @@ const Map = (props) => {
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Historical"
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date('2024-01-01T00:00:00'));  // Default to the current date bc cant use null
   // const [autoRefresh, setAutoRefresh] = useState(true);
   // const [current, setCurrent] = useState('')
   // const [case1, setcase1] = useState('')
@@ -44,6 +44,8 @@ const Map = (props) => {
   //   setShowdots(!showdots);
   // };
 
+  console.log("SELECTED DATE FOR HISTORICAL CHECK")
+  console.log(selectedDate)
 
   // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
@@ -106,12 +108,12 @@ const Map = (props) => {
   //   setAutoUpdate(event.target.checked);
   // };
 
-  // Handle change of first dropdown
-  const handleContextChange = (event) => {
-    setSelectedContext(event.target.value);
+  // Handle dropdown change (Live or Historical)
+  const handleContextChange = (e) => {
+    setSelectedContext(e.target.value);
   };
 
-  // Handle change of date
+  // Handle date change from DatePicker
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
@@ -485,11 +487,37 @@ const Map = (props) => {
         Enable Auto Refresh
       </label> */}
 
-      <h2 style={{ margin: '0', padding: '0'}}>Context</h2>
+    
+
+      <h2 style={{ margin: '0', padding: '0'}}> Context <Tooltip content="Select whether to display live data or historical data. Live data is the real-time perspective with the most recently updated data, which relevent for an up-to-date picture of the road surface conditions (current and forecasted). The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
       <p style={{ margin: '0', padding: '0'}}>Display live data </p>
       <p style={{ marginTop: '0', marginBottom: '10px'}}>Display historical data (SELECT DATE) </p>
+      <div>
+        {/* First dropdown: Live or Historical */}
+        <select value={selectedContext} onChange={handleContextChange}>
+          <option value="Live">Live</option>
+          <option value="Historical">Historical</option>
+        </select>
+
+        {/* Conditional rendering for datetime picker */}
+        {selectedContext === 'Historical' && (
+          <div>
+            <label>Select Date and Time</label>
+            <DatePicker
+              selected={selectedDate}
+              onChange={handleDateChange}
+              showTimeSelect
+              timeIntervals={5} // Time increments of 5 minutes
+              minDate={new Date('2024-01-01T00:00:00')} // Start date: Jan 1st, 2024
+              dateFormat="Pp" // Date format: MM/DD/YYYY HH:MM
+              timeCaption="Time"
+              timeFormat="HH:mm"
+            />
+          </div>
+        )}
+      </div>
       <h2 style={{ margin: '0', padding: '0'}}>Location</h2>
-      <h3 style={{ margin: '0', padding: '0'}}>{`Colored Dots: road surface conditions at NYSDOT Camera Locations`}
+      <p style={{ margin: '0', padding: '0'}}>{`At NYSDOT Camera Locations`}
         <Tooltip content="Data is refreshed every 5 minutes. This option shows model-predicted road surface condition data for locations where there are camera images. Weather data is also incorporated." />
         <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
             <input
@@ -502,11 +530,11 @@ const Map = (props) => {
             {/* Show FCST Data  */}
             {/*  uncomment above ^ to add checkbox name */}
           </label>
-      </h3>
+      </p>
       
       <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p>
       {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
-      <h3 style={{ margin: '0', padding: '0'}}>{`Shading: road surface conditions in all areas`}
+      <p style={{ margin: '0', padding: '0'}}>{`All Areas`}
       {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
         <Tooltip content="Data is refreshed at the top of the hour. This option shows model-predicted road surface condition data for all geographic locations based on weather data only, no camera image." />
         <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
@@ -520,7 +548,7 @@ const Map = (props) => {
             {/* Show FCST Data  */}
             {/*  uncomment above ^ to add checkbox name */}
           </label>
-      </h3>
+      </p>
       <p style={{margin: '0', padding: '0'}}>
         {`Last updated: ${lastUpdateFCST}`}
       </p>
