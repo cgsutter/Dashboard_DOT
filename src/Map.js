@@ -25,6 +25,11 @@ const Map = (props) => {
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  // const [current, setCurrent] = useState('')
+  // const [case1, setcase1] = useState('')
+  // const [fcst2hr, setfcst2hr] = useState('')
+  // const [fcst2hr, setfcst2hr] = useState('')
 
 
   // // Toggle handler for checkbox
@@ -93,10 +98,10 @@ const Map = (props) => {
   console.log("CHECK THE FCST ONLY DICT NAME!")
   console.log(selectedFCSTDictionary)
 
-  // // Function to toggle auto-update on/off based on checkbox input
-  // const handleAutoUpdateChange = (event) => {
-  //   setAutoUpdate(event.target.checked);
-  // };
+  // Function to toggle auto-update on/off based on checkbox input
+  const handleAutoUpdateChange = (event) => {
+    setAutoUpdate(event.target.checked);
+  };
 
   
 
@@ -195,6 +200,8 @@ const Map = (props) => {
   }, [selectedDictionary,selectedFCSTDictionary]);
 
 
+
+  
   // Third: plot the map. Make two helper functions to break up the code from useEffect (1, the map basics and 2, the plotted RSC points)
 
   // Define helper function to set up the map basics, Later, will be called on in useEffect later when data changes, which relies on when user changes dictionary. 
@@ -242,71 +249,6 @@ const Map = (props) => {
     return () => map.remove(); // Cleanup the map when the component unmounts
   }, []); // Empty dependency array to ensure this only runs once on mount
 
-  // // Define helper function to plot points and the model RSCs
-  // const setupPlotPoints = (map, camdata, data, conditions, conditionOrder) => {
-  //   conditionOrder.forEach((condition) => {
-  //     camdata.forEach((entry) => {
-  //       const rscData = (
-  //         data[entry.id] ?? { final_model_pred: "NA", color: "black", confidence: "NA" }
-  //       );
-  
-  //       if (rscData.final_model_pred === condition && conditions[condition.toLowerCase()]) {
-  //         const el = document.createElement("div");
-  //         el.className = "marker";
-  //         el.style.background = rscData.color;
-  //         el.style.width = "10px";
-  //         el.style.height = "10px";
-  //         el.style.borderRadius = "50%";
-  
-  //         new mapboxgl.Marker(el)
-  //           .setLngLat([entry.lon, entry.lat])
-  //           .setPopup(
-  //             new mapboxgl.Popup().setHTML(
-  //               `ID: ${entry.id} <br> Condition: ${rscData.final_model_pred} <br>  Confidence: ${rscData.confidence}`
-  //             )
-  //           )
-  //           .addTo(map);
-  //       }
-  //     });
-  //   });
-  // };
-
-  // Helper function to plot points based on condition and camdata
-  const setupPlotPoints = (map, camdata, data, conditions) => {
-    // Remove previous markers (if any) to avoid duplicates
-    const markers = [];
-    
-    ["obs", "poor_viz", "dry", "wet", "snow", "snow_severe"].forEach((condition) => {
-      camdata.forEach((entry) => {
-        const rscData = (
-          data[entry.id] ?? { final_model_pred: "NA", color: "black", confidence: "NA" }
-        );
-
-        // Check if the condition matches and if it's in the conditions
-        if (rscData.final_model_pred === condition && conditions[condition.toLowerCase()]) {
-          const el = document.createElement("div");
-          el.className = "marker";
-          el.style.background = rscData.color;
-          el.style.width = "10px";
-          el.style.height = "10px";
-          el.style.borderRadius = "50%";
-
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([entry.lon, entry.lat])
-            .setPopup(
-              new mapboxgl.Popup().setHTML(
-                `ID: ${entry.id} <br> Condition: ${rscData.final_model_pred} <br>  Confidence: ${rscData.confidence}`
-              )
-            );
-
-          markers.push(marker); // Store marker for later cleanup
-        }
-      });
-    });
-
-    return markers; // Return markers array for further management
-  };
-
   // Define helper functions to plot fcst color gradients
   // first helper function will convert the dataFCST dictionary to GeoJSON format for easy Map plotting
   const convertDataToGeoJSON = (datatoconvert) => {
@@ -328,32 +270,6 @@ const Map = (props) => {
     };
   };
 
-  // Convert data to GeoJSON format if the FCST data changes (which will happen after the fcst dict changes, which will happen after the user sleects dropdown)
-  // useEffect(() => {
-  //   geoJSONData = convertDataToGeoJSON(FCSTdata);
-  // }, [FCSTdata]);
-
-  const setupPlotFCSTGradient = (map, geodata) => {
-    // Add points data as a source
-    map.addSource('points', {
-      type: 'geojson',
-      data: geodata
-    });
-
-    // Add circle layer for points with gradient effect
-    map.addLayer({
-      id: 'point-layer',
-      type: 'circle',
-      source: 'points',
-      paint: {
-        'circle-color': ['get', 'color'],
-        'circle-radius': 10, // adjust radius as needed for gradient spread, of 15 or 20 will make the points larger, causing more overlap and blending between adjacent points.
-        'circle-opacity': 0.2, // make circles translucent, higher opacity (high values) vs lower opacity (more translucent, higher values here)
-        'circle-blur': 1 // create a gradient-like blur effect A higher blur value gives a more “fuzzy” appearance, creating a gradient effect around each point. Lower blur values will make the edges sharper and more distinct.
-
-      }
-    });
-  };
 
 
   const parseLatLon = (latLonStr) => {
@@ -378,38 +294,44 @@ const Map = (props) => {
     });
   };
     
+  // Make the boolean oobject (from user-selected conditions) into an array for filtering data
+  const makeArray = (inputBoolDict) => {
+    const boolArray = Object.keys(inputBoolDict).filter(
+    (condition) => inputBoolDict[condition] === true
+    )
+    return boolArray
+  };
 
+  // Helper function to filter data based on selected conditions
+  const filterDataByConditions = (data, selectedConditions) => {
+    return Object.fromEntries(
+      Object.entries(data).filter(
+        ([, value]) => selectedConditions.includes(value.final_model_pred)
+      )
+    );
+  };
+
+  // Helper function to reorder data based on condition priority
+  const reorderDataByPriority = (filteredData, conditionOrder) => {
+    const sortedArray = Object.entries(filteredData).sort(
+      ([, a], [, b]) =>
+        conditionOrder.indexOf(a.final_model_pred) -
+        conditionOrder.indexOf(b.final_model_pred)
+    );
+
+    return Object.fromEntries(sortedArray);
+  };
+
+
+  // this builds the map
   useEffect(() => {
     if (!mapInstance) return; // Ensure mapInstance is ready
 
     // Convert FCSTdata to GeoJSON
     const geoJSONData = convertDataToGeoJSON(FCSTdata);
   
-    // without if statement to check the showFCST button
-    // // **1. Manage forecast gradient (FCST) source and layer**
-    // if (mapInstance.getSource('points')) {
-    //   // Update the data if the source already exists
-    //   mapInstance.getSource('points').setData(geoJSONData);
-    // } else {
-    //   // Create the source and layer if they don't exist
-    //   mapInstance.addSource('points', {
-    //     type: 'geojson',
-    //     data: geoJSONData,
-    //   });
-  
-    //   mapInstance.addLayer({
-    //     id: 'point-layer',
-    //     type: 'circle',
-    //     source: 'points',
-    //     paint: {
-    //       'circle-color': ['get', 'color'],
-    //       'circle-radius': 10,
-    //       'circle-opacity': 0.2,
-    //       'circle-blur': 1,
-    //     },
-    //   });
-    // }
-      // **1. Manage forecast gradient (FCST) source and layer**
+
+    // **1. Manage forecast gradient (FCST) source and layer**
     if (showFCST) {
       if (mapInstance.getSource('points')) {
         // Update the data if the source already exists
@@ -445,7 +367,28 @@ const Map = (props) => {
       
 
     // 2 manage adding cam level dots
-    const dotsData = convertDataToDots(data);
+
+    console.log("check what is data")
+    console.log(data)
+
+    // convert into array of conditions 
+    const conditionsArray = makeArray(conditions)
+
+    console.log("check what is conditions (these are user-selected")
+    console.log(conditions)
+    // Filter and order the data
+    // Step 1: Filter the data based on selected conditions
+    const filteredData = filterDataByConditions(data, conditionsArray);
+
+    // Step 2: Reorder the filtered data based on the specified priority
+    const orderedData = reorderDataByPriority(filteredData,["obs","poor_viz", , "dry", "wet", "snow","snow_severe"]);
+
+    // const filteredData = filterDataByConditions(data, conditions);
+    // const orderedData = orderDataByPriority(filteredData, ["snow_severe", "snow", "wet", "dry", "poor_viz", "obs"]);
+    
+
+    const dotsData = convertDataToDots(orderedData); //data
+
 
     if (showdots) {
       console.log("DOTS DATA!!")
@@ -510,134 +453,6 @@ const Map = (props) => {
   };
   }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]); // Re-run when any of these data dependencies change
 
-// REMOVE OUT HERE
-  // // repeat for cam locations 
-  // const geoJSONData_camlocs = convertDataToGeoJSON(data);
-  
-  // // **1. Manage forecast gradient (FCST) source and layer**
-  // if (mapInstance.getSource('points')) {
-  //   // Update the data if the source already exists
-  //   mapInstance.getSource('points').setData(geoJSONData_camlocs);
-  // } else {
-  //   // Create the source and layer if they don't exist
-  //   mapInstance.addSource('points', {
-  //     type: 'geojson',
-  //     data: geoJSONData_camlocs,
-  //   });
-
-  //   mapInstance.addLayer({
-  //     id: 'point-layer',
-  //     type: 'circle',
-  //     source: 'points',
-  //     paint: {
-  //       'circle-color': ['get', 'color'],
-  //       'circle-radius': 10,
-  //       'circle-opacity': 1,
-  //       'circle-blur': 1,
-  //     },
-  //   });
-  // }
-  // Step 3: Handle camdata and update markers for each condition
-  // const markers = setupPlotPoints(mapInstance, camdata, data, conditions);
-  // markers.forEach((marker) => marker.addTo(mapInstance)); // Add all markers to the map
-
-  // // Set up or update layers based on data changes
-  // useEffect(() => {
-  //   console.log("check if mapinstance tf")
-  //   console.log(mapInstance)
-  //   if (mapInstance) {
-  //     // // Convert FCSTdata to GeoJSON and update or add the gradient layer
-  //     // const geoJSONData = convertDataToGeoJSON(FCSTdata);
-  //     // if (mapInstance.getSource('points')) {
-  //     //   mapInstance.getSource('points').setData(geoJSONData);
-  //     // } else {
-  //     //   setupPlotFCSTGradient(mapInstance, geoJSONData);
-  //     // }
-
-  //     // // Update or add points for camdata
-  //     // setupPlotPoints(mapInstance, camdata, data, conditions, [
-  //     //   "obs", "poor_viz", "dry", "wet", "snow", "snow_severe"
-  //     // ]);
-  //     mapInstance.on('load', () => {
-  //       // **Step 1**: Check for existing 'points' source and update instead of re-adding
-  //       const geoJSONData = convertDataToGeoJSON(FCSTdata);
-    
-  //       if (mapInstance.getSource('points')) {
-  //         mapInstance.getSource('points').setData(geoJSONData); // Update the source data if it exists
-  //       } else {
-  //         setupPlotFCSTGradient(mapInstance, geoJSONData); // Add new source if not present
-  //       }
-    
-  //       // **Step 2**: Remove and re-add layers as needed to avoid duplicates
-  //       if (mapInstance.getLayer('point-layer')) {
-  //         mapInstance.removeLayer('point-layer');
-  //       }
-  //       if (mapInstance.getSource('points')) {
-  //         mapInstance.removeSource('points');
-  //       }
-  //       setupPlotFCSTGradient(mapInstance, geoJSONData);
-    
-  //       // **Add plot points for camdata**
-  //       setupPlotPoints(mapInstance, camdata, data, conditions, [
-  //         "obs", "poor_viz", "dry", "wet", "snow", "snow_severe"
-  //       ]);
-  //     });
-  //   }
-  // return () => {
-  //     if (mapInstance) mapInstance.off('load'); // Clean up event listeners
-  // };
-  // }, [mapInstance, FCSTdata, camdata, data, conditions]); // Only re-run when data changes
-
-
-  // // load initial map once and store it into mapInstance for later, when adding layers on when calling layers onto the map based on dependencies. 
-  // useEffect(() => {
-  //   const map = setupMap(mapContainer.current, state);
-  //   // Store the map instance for later use
-  //   // setMapInstance(map);
-  //   return () => map.remove();
-  // }, []); // Empty dependency array ensures effect runs only once
-  
-  // useEffect(() => {
-  //   const map = setupMap(mapContainer.current, state);
-
-  //   map.on('load', () => {
-  //     // Convert FCSTdata to GeoJSON format
-
-  //     console.log("check before geojson conversion")
-  //     console.log(FCSTdata)
-  //     const geoJSONData = convertDataToGeoJSON(FCSTdata);
-  
-  //     console.log ("loaded geojson data")
-  //     console.log("GeoJSON Data:", geoJSONData);
-  //     // Plot the forecast gradient using the converted geoJSONData after map load
-  //     setupPlotFCSTGradient(map, geoJSONData);
-  
-  //     // Plot points for camdata
-  //     setupPlotPoints(map, camdata, data, conditions, [
-  //       "obs", "poor_viz", "dry", "wet", "snow", "snow_severe"
-  //     ]);
-  //   });
-
-  //   // const geoJSONData = convertDataToGeoJSON(FCSTdata);
-  //   // setupPlotFCSTGradient(map, geoJSONData);
-  //   // setupPlotPoints(map, camdata, data, conditions, [
-  //   //   "obs", "poor_viz", "dry", "wet", "snow", "snow_severe"
-  //   // ]);
-  
-  //   return () => map.remove();
-  // }, [state, data, FCSTdata, conditions]); // update if the state changes (i.e. if map should be centered differently), but most commonly, update if the user defined selections change, either 1) the selected dropdown case, which affects the dictionary name, which affects the data to read in, and 2) which RSC classes to change
-
-
-  // Explanation
-
-  // useEffect(() => {
-  //   const map = setupMap(mapContainer.current, state);
-  //   // setupPlotFCSTGradient(map, FCSTdata);
-  //   setupPlotFCSTGradient(map, FCSTdata);
-  
-  //   return () => map.remove();
-  // }, [state, FCSTdata, conditions]);
-
   console.log("log selectedDictionar")
   console.log(selectedDictionary)
   console.log("log conditions")
@@ -649,8 +464,17 @@ const Map = (props) => {
       <h1>{`${getTitle()}`}</h1>
       {/* <h3>{`Updated at:`}</h3> */}
       {/* <h3>{`Colo`}</h3> */}
-      <h3 style={{ margin: '0', padding: '0'}}>{`Colored Dots: NYSDOT Camera Locations`}
-        <Tooltip content="This option shows model-predicted road surface conditions for locations where there are camera images. Weather data is also incorporated." />
+      {/* <label>
+        <input
+          type="checkbox"
+          checked={autoRefresh}
+          onChange={(e) => setAutoRefresh(e.target.checked)}
+        />
+        Enable Auto Refresh
+      </label> */}
+
+      <h3 style={{ margin: '0', padding: '0'}}>{`Colored Dots: road surface conditions at NYSDOT Camera Locations`}
+        <Tooltip content="Data is refreshed every 5 minutes. This option shows model-predicted road surface condition data for locations where there are camera images. Weather data is also incorporated." />
         <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
             <input
               type="checkbox"
@@ -666,9 +490,9 @@ const Map = (props) => {
       
       <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p>
       {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
-      <h3 style={{ margin: '0', padding: '0'}}>{`Shading: All areas`}
+      <h3 style={{ margin: '0', padding: '0'}}>{`Shading: road surface conditions in all areas`}
       {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
-        <Tooltip content="This option shows model-predicted road surface conditions for all geographic locations based on weather data only, no camera image." />
+        <Tooltip content="Data is refreshed at the top of the hour. This option shows model-predicted road surface condition data for all geographic locations based on weather data only, no camera image." />
         <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
             <input
               type="checkbox"
