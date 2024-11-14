@@ -15,13 +15,12 @@ mapboxgl.accessToken = api_token_mapbox;
 // This entire Map function is called on in App.js. Inputs are props (state) which is macro map details, like centered lat/lon and zoom. 
 const Map = (props) => {
   const mapContainer = useRef(null);
-  const { state } = props;
+  const { state } = props; 
   // const [autoUpdate, setAutoUpdate] = useState(false); // Track if auto-update is enabled
-  const [selectedDictionary, setSelectedDictionary] = useState('data\camlocs_current'); // selectedDictionary is the for the corresponding case that the user selected
-  const [selectedFCSTDictionary, setSelectedFCSTDictionary] = useState('data\FCST_current'); // equivalent of the above but for fcst data
+  const [selectedDictionary, setSelectedDictionary] = useState('camlocs_current'); // selectedDictionary is the for the corresponding case that the user selected
+  const [selectedFCSTDictionary, setSelectedFCSTDictionary] = useState('FCST_current'); // equivalent of the above but for fcst data
   const [data, setData] = useState({}); // Based on the selectedDictionary, load the corresponding data using the API and store it in data
   const [FCSTdata, setFCSTData] = useState({}); // equivalent of the above but for fcst data
-
   const [mapInstance, setMapInstance] = useState(null);
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
@@ -29,8 +28,6 @@ const Map = (props) => {
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Historical"
   const [selectedDate, setSelectedDate] = useState(new Date('2024-01-01T00:00:00'));  // Default to the current date bc cant use null
-  const [selectedDateStr, setSelectedDateStr] = useState("")
-  const [selectedValidTime, setSelectedValidTime] = useState('current')
   // const [autoRefresh, setAutoRefresh] = useState(true);
   // const [current, setCurrent] = useState('')
   // const [case1, setcase1] = useState('')
@@ -56,11 +53,11 @@ const Map = (props) => {
       case 'camlocs_current':
         return 'Map: Current road surface conditions';
       case 'camlocs_case_20220203_06':
-        return 'Map: Forecast 2 hours';
+        return 'Map: Case Study: Feb 3 2022 at 1am EST';
       case 'camlocs_case_20220203_18':
         return 'Map: Case Study: Feb 3 2022 at 1pm EST';
       default:
-        return 'Map: Forecast 6 hours';
+        return 'Map: Road surface conditions';
     }
   };
 
@@ -88,53 +85,23 @@ const Map = (props) => {
   console.log(conditions)
 
   // Define this function to handle whichever case the user wants to map, based on their selection from the dropdown dashbaord
-  // const handleValidTimeChange = (event) => {
-  //   const value = event.target.value;
-  //   setSelectedValidTime(value);
+  const handleDictionaryChange = (event) => {
+    const value = event.target.value;
+    setSelectedDictionary(value);
 
-  //   //  TO COME BACK TO: I think the map is loading twice bc of how the fcst dict changes AFTER the regular data dict changes
-  //   //  add the second piece taht we want the toggle to adjust, the forecast only json file name too (not just the cam level one)
-  //   if (value === "camlocs_current") {
-  //     setSelectedValidTime("current");
-  //   } else if (value === "camdlocs_case_20220203_06") { //camdata_casestudy_20220203_06
-  //     setSelectedValidTime("FCST_2hr");
-  //   } else if (value === "camlocs_case_20220203_18") {
-  //     setSelectedValidTime("FSCT_6hr");
-  //   }
-  // };
+    //  TO COME BACK TO: I think the map is loading twice bc of how the fcst dict changes AFTER the regular data dict changes
+    //  add the second piece taht we want the toggle to adjust, the forecast only json file name too (not just the cam level one)
+    if (value === "camlocs_current") {
+      setSelectedFCSTDictionary("FCST_current");
+    } else if (value === "camdlocs_case_20220203_06") { //camdata_casestudy_20220203_06
+      setSelectedFCSTDictionary("FCST_casestudy_20220203_06");
+    } else if (value === "camlocs_case_20220203_18") {
+      setSelectedFCSTDictionary("FCST_casestudy_20220203_18");
+    }
+  };
 
   console.log("CHECK THE FCST ONLY DICT NAME!")
   console.log(selectedFCSTDictionary)
-
-  // make the toggle above the map for forecast vs current
-
-  // // Define this function to handle whichever case the user wants to map, based on their selection from the dropdown dashbaord
-  const handleValidTimeChange = (event) => {
-    const value = event.target.value;
-    setSelectedValidTime(value);
-
-    // if (value === "camlocs_current") {
-    //   setSelectedValidTime("current");
-    // } else if (value === "camlocs_case_20220203_06") { //camdata_casestudy_20220203_06
-    //   setSelectedValidTime("FCST_2hr");
-    // } else if (value === "camlocs_case_20220203_18") {
-    //   setSelectedValidTime("FSCT_6hr");
-    // }
-  };
-
-  console.log("Validtime change?")
-  console.log(selectedValidTime)
-
-  //   //  TO COME BACK TO: I think the map is loading twice bc of how the fcst dict changes AFTER the regular data dict changes
-  //   //  add the second piece taht we want the toggle to adjust, the forecast only json file name too (not just the cam level one)
-  //   if (value === "camlocs_current") {
-  //     setSelectedFCSTDictionary("FCST_current");
-  //   } else if (value === "camdlocs_case_20220203_06") { //camdata_casestudy_20220203_06
-  //     setSelectedFCSTDictionary("FCST_casestudy_20220203_06");
-  //   } else if (value === "camlocs_case_20220203_18") {
-  //     setSelectedFCSTDictionary("FCST_casestudy_20220203_18");
-  //   }
-  // };
 
   // // Function to toggle auto-update on/off based on checkbox input
   // const handleAutoUpdateChange = (event) => {
@@ -146,41 +113,11 @@ const Map = (props) => {
     setSelectedContext(e.target.value);
   };
 
-  console.log("context change?")
-  console.log(selectedContext)
-
-
   // Handle date change from DatePicker
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
-
-
-
-  // based on user selected dat (if historical) then also grab the string format for selected date which will be used for reading in the correct data
-
-  const formatDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is zero-indexed
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-
-    return `${year}${month}${day}_${hours}_${minutes}`;
-  };
-
-
-  // // Initialize the map only once
-  // useEffect(() => {
-  //   setSelectedDateStr(formatDate(date))
-  //   const map = setupMap(mapContainer.current, state);
-  //   map.on('load', () => {
-  //     setMapInstance(map); // Store the initialized map instance
-  //   });
-
-  //   return () => map.remove(); // Cleanup the map when the component unmounts
-  // }, []); // Empty dependency array to ensure this only runs once on mount
-
+  
 
   // Second: Load in the data
 
@@ -189,9 +126,8 @@ const Map = (props) => {
     try {
       console.log("beginning fetch")
       console.log(selectedDictionary)
-      const sendreq = `data/${selectedDictionary}`
-      console.log(sendreq)
-      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=${sendreq}`, {
+      console.log(`data_live/${selectedDictionary}`)
+      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=data_live/camlevel/${selectedDictionary}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
         headers: {
@@ -206,7 +142,7 @@ const Map = (props) => {
         console.error("Failed to fetch data:", response.statusText);
         return;
       }
-
+     
       const apiResponse = await response.json();
       console.log('API Response:', apiResponse); // Log API response
       console.log("through here????")
@@ -226,9 +162,7 @@ const Map = (props) => {
     try {
       console.log("beginning FCST fetch")
       console.log(selectedFCSTDictionary)
-      const sendreq = `data/${selectedFCSTDictionary}`
-      console.log(sendreq)
-      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=${sendreq}`, {
+      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=data_live/hrrrlevel/${selectedFCSTDictionary}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
         headers: {
@@ -238,12 +172,12 @@ const Map = (props) => {
       // .then(async (res)=> await console.log('res',res.json()));
       console.log("got through await fetch FCST")
       // console.log(response.status)
-
+     
       if (!response.ok) {
         console.error("Failed to fetch data:", response.statusText);
         return;
       }
-
+     
       const apiResponse = await response.json();
       console.log('API Response:', apiResponse); // Log API response
       console.log("through here????")
@@ -263,19 +197,7 @@ const Map = (props) => {
   // Load the data
   // Do this by calling the fetchdata function when selectedDictionary changes (based on user intraction), and do this by using the built in React useEffect feature
 
-  useEffect(() => {
-    // load camspot data
-    if (selectedContext === "Live") {
-      setSelectedDictionary("/data/camlocs_current");
-      setSelectedFCSTDictionary("/data/FCST_current");
-    } else if (selectedContext === "Historical") { //
-      setSelectedDateStr(formatDate(selectedDate))
-      setSelectedDictionary(`/data_archive/camlocs_casestudy_${selectedDateStr}`);
-      setSelectedFCSTDictionary(`/data_archive/FCST_casestudy_${selectedDateStr}`);    //   setSelectedValidTime("FCST_2hr");
-    }
-      console.log("in new use effect")
-      console.log(setSelectedDictionary)
-    }, [selectedContext, selectedDate, selectedValidTime]);
+ 
 
   useEffect(() => {
     // load camspot data
@@ -283,22 +205,22 @@ const Map = (props) => {
     console.log('selectedDictionary:', selectedDictionary);
     fetchData();
   }, [selectedDictionary]);
-
+    
 
   useEffect(() => {
     // load fcst data. Could put this in the same useeffect above since if one dict changes the other one does too
     console.log('Component rendered for FCST, fetch should occur for FCST');
     console.log('selectedFCSTDictionary:', selectedFCSTDictionary);
     fetchFCST();
-  }, [selectedDictionary, selectedFCSTDictionary]);
+  }, [selectedDictionary,selectedFCSTDictionary]);
 
 
 
-
+  
   // Third: plot the map. Make two helper functions to break up the code from useEffect (1, the map basics and 2, the plotted RSC points)
 
   // Define helper function to set up the map basics, Later, will be called on in useEffect later when data changes, which relies on when user changes dictionary. 
-
+  
   const setupMap = (container, state) => {
     const map = new mapboxgl.Map({
       container: container,
@@ -307,10 +229,10 @@ const Map = (props) => {
       center: [state.lng, state.lat],
       zoom: state.zoom,
     }); // built in mapbox function to make it
-
+  
     // Add navigation control
     map.addControl(new mapboxgl.NavigationControl());
-
+  
     // Add roadways layer
     map.on('load', () => {
       map.addLayer({
@@ -328,10 +250,10 @@ const Map = (props) => {
         }
       });
     });
-
+  
     return map;
   };
-
+  
   // Initialize the map only once
   useEffect(() => {
     const map = setupMap(mapContainer.current, state);
@@ -386,11 +308,11 @@ const Map = (props) => {
       };
     });
   };
-
+    
   // Make the boolean oobject (from user-selected conditions) into an array for filtering data
   const makeArray = (inputBoolDict) => {
     const boolArray = Object.keys(inputBoolDict).filter(
-      (condition) => inputBoolDict[condition] === true
+    (condition) => inputBoolDict[condition] === true
     )
     return boolArray
   };
@@ -422,7 +344,7 @@ const Map = (props) => {
 
     // Convert FCSTdata to GeoJSON
     const geoJSONData = convertDataToGeoJSON(FCSTdata);
-
+  
 
     // **1. Manage forecast gradient (FCST) source and layer**
     if (showFCST) {
@@ -442,8 +364,14 @@ const Map = (props) => {
           source: 'points',
           paint: {
             'circle-color': ['get', 'color'],
-            'circle-radius': 10,
-            'circle-opacity': 0.2,
+            'circle-radius': 30,
+            'circle-opacity': [
+              'interpolate', 
+              ['linear'],
+              ['zoom'],
+              7, 0.025,
+              12,.9
+            ],
             'circle-blur': 1,
           },
         });
@@ -452,12 +380,12 @@ const Map = (props) => {
       // Remove the FCST layer if it exists and showFCST is false
       if (mapInstance.getLayer('point-layer')) {
         mapInstance.removeLayer('point-layer');
-      }
+      } // point-layer here!
       if (mapInstance.getSource('points')) {
         mapInstance.removeSource('points');
       }
     }
-
+      
 
     // 2 manage adding cam level dots
 
@@ -474,11 +402,11 @@ const Map = (props) => {
     const filteredData = filterDataByConditions(data, conditionsArray);
 
     // Step 2: Reorder the filtered data based on the specified priority
-    const orderedData = reorderDataByPriority(filteredData, ["obs", "poor_viz", , "dry", "wet", "snow", "snow_severe"]);
+    const orderedData = reorderDataByPriority(filteredData,["obs","poor_viz", , "dry", "wet", "snow","snow_severe"]);
 
     // const filteredData = filterDataByConditions(data, conditions);
     // const orderedData = orderDataByPriority(filteredData, ["snow_severe", "snow", "wet", "dry", "poor_viz", "obs"]);
-
+    
 
     const dotsData = convertDataToDots(orderedData); //data
 
@@ -500,7 +428,7 @@ const Map = (props) => {
             features: dotsData,
           },
         });
-
+    
         mapInstance.addLayer({
           id: 'dots-layer',
           type: 'circle',
@@ -511,39 +439,39 @@ const Map = (props) => {
             'circle-opacity': 1, // Adjust opacity as needed
           },
           // Ensure dots are on top of other layers
-          'before': 'point-layer', // Adjust index as needed
+          'before': 'fill-layer', // Adjust index as needed
         });
       }
-      // Check if the layers have been added in the correct order
-      const layers = mapInstance.getStyle().layers;
-      const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer');
-      const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
+    // Check if the layers have been added in the correct order
+    const layers = mapInstance.getStyle().layers;
+    const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer'); // point-layer here!
+    const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
 
-      // If the dots layer is below the FCST layer, we move it above
-      if (dotsLayerIndex < fcstLayerIndex) {
-        mapInstance.moveLayer('point-layer', 'dots-layer');
-      }
-
+    // If the dots layer is below the FCST layer, we move it above
+    if (dotsLayerIndex < fcstLayerIndex) {
+      mapInstance.moveLayer( 'point-layer','dots-layer'); //point-layer first one here
     }
+    
+  }
 
 
-    // Cleanup function
-    return () => {
-      if (mapInstance) {
-        if (mapInstance.getLayer('point-layer')) {
-          mapInstance.removeLayer('point-layer');
-        }
-        if (mapInstance.getSource('points')) {
-          mapInstance.removeSource('points');
-        }
-        if (mapInstance.getLayer('dots-layer')) {
-          mapInstance.removeLayer('dots-layer');
-        }
-        if (mapInstance.getSource('dots')) {
-          mapInstance.removeSource('dots');
-        }
+  // Cleanup function
+  return () => {
+    if (mapInstance) {
+      if (mapInstance.getLayer('point-layer')) { //'point-layer'
+        mapInstance.removeLayer('point-layer'); //'point-layer'
       }
-    };
+      if (mapInstance.getSource('points')) {
+        mapInstance.removeSource('points');
+      }
+      if (mapInstance.getLayer('dots-layer')) {
+        mapInstance.removeLayer('dots-layer');
+      }
+      if (mapInstance.getSource('dots')) {
+        mapInstance.removeSource('dots');
+      }
+    }
+  };
   }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]); // Re-run when any of these data dependencies change
 
   console.log("log selectedDictionar")
@@ -566,11 +494,11 @@ const Map = (props) => {
         Enable Auto Refresh
       </label> */}
 
+    
 
-
-      <h2 style={{ margin: '0', padding: '0' }}> Context <Tooltip content="Select whether to display live data or historical data. Live data is the real-time perspective with the most recently updated data, which relevent for an up-to-date picture of the road surface conditions (current and forecasted). The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
-      <p style={{ margin: '0', padding: '0' }}>Display live data </p>
-      <p style={{ marginTop: '0', marginBottom: '10px' }}>Display historical data (SELECT DATE) </p>
+      <h2 style={{ margin: '0', padding: '0'}}> Context <Tooltip content="Select whether to display live data or historical data. Live data is the real-time perspective with the most recently updated data, which relevent for an up-to-date picture of the road surface conditions (current and forecasted). The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
+      <p style={{ margin: '0', padding: '0'}}>Display live data </p>
+      <p style={{ marginTop: '0', marginBottom: '10px'}}>Display historical data (SELECT DATE) </p>
       <div>
         {/* First dropdown: Live or Historical */}
         <select value={selectedContext} onChange={handleContextChange}>
@@ -595,40 +523,40 @@ const Map = (props) => {
           </div>
         )}
       </div>
-      <h2 style={{ margin: '0', padding: '0' }}>Location</h2>
-      <p style={{ margin: '0', padding: '0' }}>{`At NYSDOT Camera Locations`}
+      <h2 style={{ margin: '0', padding: '0'}}>Location</h2>
+      <p style={{ margin: '0', padding: '0'}}>{`At NYSDOT Camera Locations`}
         <Tooltip content="Data is refreshed every 5 minutes. This option shows model-predicted road surface condition data for locations where there are camera images. Weather data is also incorporated." />
         <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
-          <input
-            type="checkbox"
-            checked={showdots}
-            onChange={(e) => setShowdots(e.target.checked)}
-            // style={{ marginLeft: '5px' }}
-            style={{ transform: 'scale(1.5)', marginRight: '5px' }}
-          />
-          {/* Show FCST Data  */}
-          {/*  uncomment above ^ to add checkbox name */}
-        </label>
+            <input
+              type="checkbox"
+              checked={showdots}
+              onChange={(e) => setShowdots(e.target.checked)}
+              // style={{ marginLeft: '5px' }}
+              style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+            />
+            {/* Show FCST Data  */}
+            {/*  uncomment above ^ to add checkbox name */}
+          </label>
       </p>
-
-      <p style={{ margin: '0', padding: '0', marginBottom: '5px' }}>{`Last updated: ${lastUpdateCam}`}</p>
+      
+      <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p>
       {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
-      <p style={{ margin: '0', padding: '0' }}>{`All Areas`}
-        {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
+      <p style={{ margin: '0', padding: '0'}}>{`All Areas`}
+      {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
         <Tooltip content="Data is refreshed at the top of the hour. This option shows model-predicted road surface condition data for all geographic locations based on weather data only, no camera image." />
         <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
-          <input
-            type="checkbox"
-            checked={showFCST}
-            onChange={(e) => setShowFCST(e.target.checked)}
-            // style={{ marginLeft: '5px' }}
-            style={{ transform: 'scale(1.5)', marginRight: '5px' }}
-          />
-          {/* Show FCST Data  */}
-          {/*  uncomment above ^ to add checkbox name */}
-        </label>
+            <input
+              type="checkbox"
+              checked={showFCST}
+              onChange={(e) => setShowFCST(e.target.checked)}
+              // style={{ marginLeft: '5px' }}
+              style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+            />
+            {/* Show FCST Data  */}
+            {/*  uncomment above ^ to add checkbox name */}
+          </label>
       </p>
-      <p style={{ margin: '0', padding: '0' }}>
+      <p style={{margin: '0', padding: '0'}}>
         {`Last updated: ${lastUpdateFCST}`}
       </p>
       {/* <div>
@@ -709,15 +637,15 @@ const Map = (props) => {
 
         </ul>
       </div>
+      <h2 style={{ margin: '0', padding: '0'}}>Conditions:</h2>
 
-      <select onChange={handleValidTimeChange} value={selectedValidTime}>
-        <option value="current">new current</option>
-        <option value="camlocs_current">Current (using camera)</option>
+      <select onChange={handleDictionaryChange} value={selectedDictionary}>
+        <option value="camlocs_current">Currently </option>
         {/* <option value="camdata_casestudy">Case study example</option> */}
-        <option value="camlocs_case_20220203_06">Case study: Feb 3 2022 1am EST</option>
-        <option value="camlocs_case_20220203_18">Case study: Feb 3 2022 1pm EST</option>
+        <option value="camlocs_case_20220203_06">Forecast in 2 Hours</option>
+        <option value="camlocs_case_20220203_18">Forecast in 2 Hours</option>
       </select>
-
+      
       <div
         ref={mapContainer}
         style={{
@@ -736,7 +664,7 @@ const Map = (props) => {
       {/*  */}
       <div id="mapContainer" style={{ width: '100%', height: '400px' }}></div>
 
-
+    
     </div>
   );
 

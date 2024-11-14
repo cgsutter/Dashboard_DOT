@@ -31,7 +31,7 @@ app.get('/data', (req, res) => {
   }
 
   const fileNamewithext = fileName + '.js';
-  const filePath = path.join(__dirname, 'data', fileNamewithext);
+  const filePath = path.join(__dirname, fileNamewithext); //__dirname, 'data', fileNamewithexts
   console.log('filePath:', filePath);
   const lastUpdated = getLastModifiedDate(filePath);
   // const formattedLastUpdated = new Date(lastUpdated).toISOString();
