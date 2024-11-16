@@ -4,6 +4,11 @@ import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
 import Tooltip from './Tooltip'; // Import the Tooltip component
+import {roundTimeHour} from './timing_helper.js';
+import {prepFileString} from './timing_helper.js';
+import {prepListForecastOptions} from './timing_helper.js';
+import {prepFileString_fcst} from './timing_helper.js';
+
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";  // 
 
@@ -26,14 +31,24 @@ const Map = (props) => {
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
-  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Historical"
+  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
+  const [subdir, setSubdir] = useState('data_camlevel'); // this will be adjusted based on the selection of Context (this is not a toggle itself, but changed based on user toggle)
   const [selectedDate, setSelectedDate] = useState(new Date('2024-01-01T00:00:00'));  // Default to the current date bc cant use null
+  const [rounded, setRounded] = useState(new Date());
+  const [stringDate, setStringDate] = useState('');
+  const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options
+  const [selectedForecast, setSelectedForecast] = useState('Forecast for 11/15/2024, 09:00 PM ET');
+  const [fileForecast, setFileForecast] = useState('');
+  // these should be for historic only
+  // For the 
   // const [autoRefresh, setAutoRefresh] = useState(true);
   // const [current, setCurrent] = useState('')
   // const [case1, setcase1] = useState('')
   // const [fcst2hr, setfcst2hr] = useState('')
   // const [fcst2hr, setfcst2hr] = useState('')
 
+  
+  console.log(rounded)
 
   // // Toggle handler for checkbox
   // const handleToggleChange = () => {
@@ -93,7 +108,7 @@ const Map = (props) => {
     //  add the second piece taht we want the toggle to adjust, the forecast only json file name too (not just the cam level one)
     if (value === "camlocs_current") {
       setSelectedFCSTDictionary("FCST_current");
-    } else if (value === "camdlocs_case_20220203_06") { //camdata_casestudy_20220203_06
+    } else if (value === "camlocs_case_20220203_06") { //camdata_casestudy_20220203_06
       setSelectedFCSTDictionary("FCST_casestudy_20220203_06");
     } else if (value === "camlocs_case_20220203_18") {
       setSelectedFCSTDictionary("FCST_casestudy_20220203_18");
@@ -110,24 +125,142 @@ const Map = (props) => {
 
   // Handle dropdown change (Live or Historical)
   const handleContextChange = (e) => {
-    setSelectedContext(e.target.value);
+    const usercontext = e.target.value;
+    setSelectedContext(usercontext); // change user context (see where this is needed)
+    // also change subdir
+    // maybe better to move these under a useeffect although can do similar things?
+ 
   };
+
+
+
+
+  // useEffect(() => {
+  //   // load camlevel data
+  //   // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
+  //   const runFetch = async () => {
+  //     try {
+  //       console.log('Component rendered, fetch should occur');
+  //       console.log(subdir)
+  //       console.log('selectedDictionary:', selectedDictionary);
+  
+  //       const dataloaded_camlevel = await fetchData(subdir);
+  //       setData(dataloaded_camlevel);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   };
+  
+  //   runFetch();
+  // }, [selectedDictionary]);
+
+  // useEffect(() => {
+
+  //   // const rounded_calculated = roundTimeHour(selectedDate);
+  //   setRounded(roundTimeHour(selectedDate));
+
+  // }) [selectedDate]
+
+
+
+  useEffect(() => {
+    if (selectedContext === "Live") { 
+      // set the subdir for the API to search for the most recent file for camlevel
+      setSubdir("data_camlevel");
+      // set the current datetime for the API to search for the best hrrr-level data. Note that upon loading, the default will use the current time, but need this in here in case the user switches from live, to historical, and then back to live (need to reset it to current time)
+      const now = new Date(); 
+      console.log(now); 
+      setSelectedDate(now) 
+      // setSelectedDate('2024-01-01T00:00:00') ; // this is for the forecast file pull
+    } else if (selectedContext === "Historical") { // if the user selects historical or forecast, they will select the datetime they want and it will be set that way
+      setSubdir("data_hrrrlevel");
+    } else if (selectedContext === "Forecast") {
+      setSubdir("data_hrrrlevel");
+    }
+  }, [selectedContext]);
+
+  useEffect(() => {
+    setRounded(roundTimeHour(selectedDate));
+  }, [selectedDate]);
+
+
+  useEffect(() => {
+    setStringDate(prepFileString(rounded));
+  }, [rounded]);
+
+
+  useEffect(() => {
+    setForecastOptions(prepListForecastOptions(rounded));
+  }, [rounded]);
+
+  console.log("PRINT TIME FOR LIVE")
+  console.log(selectedDate)
+
+  console.log("ROUNDD?")
+  console.log(rounded)
+
+  console.log("stringdate is")
+  console.log(stringDate)
+
+  console.log("forecast options is")
+  console.log(forecastOptions)
+
+  console.log("subdir write")
+  console.log(subdir)
+
+  console.log("send context, ")
 
   // Handle date change from DatePicker
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
+
+  // // // Handle date change from DatePicker
+  // const handleForecasetChange = (date) => {
+  //   setSelectedForecast(date);
+  // };
+
+  // Handle dropdown change (Live or Historical)
+  const handleForecasetChange = (e) => {
+    const userforecast = e.target.value;
+    setSelectedForecast(userforecast); // change user context (see where this is needed)
+    // also change subdir
+    // maybe better to move these under a useeffect although can do similar things?
+  
+  };
+
+  console.log("set selected fcst")
+  console.log(selectedForecast)
+
+  // // useEffecrt
+  // // prepFileString_fcst
+  useEffect(() => {
+    setFileForecast(prepFileString_fcst(selectedForecast));
+  }, [selectedForecast]);
+
+  console.log("FILE for forecast")
+  console.log(fileForecast)
+
+
+
+
+
+
+
+  // useEffect(() => {
+  //   setStringDate(prepFileString(rounded));
+  // }, [rounded]);
   
 
   // Second: Load in the data
 
   // Define this function that, when called on (see useEffect later) will load the corresponding data based on user selection
-  const fetchData = async () => {
+  const fetchData = async (subdirinput, dictinput) => {
     try {
       console.log("beginning fetch")
-      console.log(selectedDictionary)
-      console.log(`data_live/${selectedDictionary}`)
-      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=data_live/camlevel/${selectedDictionary}`, {
+      console.log(dictinput)
+      console.log(`${subdirinput}/${dictinput}`)
+      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=${subdirinput}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
         headers: {
@@ -150,8 +283,11 @@ const Map = (props) => {
       console.log('try printing in map when pulling data from api');
       console.log('JSON Data CAMLEVEL:', apiResponse.data);
       console.log('TIME OF CAM DATA UPDATE:', apiResponse.time);
-      setData(apiResponse.data); // Update data state
-      setLastUpdateCam(apiResponse.time)
+      // setData(apiResponse.data); // Update data state
+      // setLastUpdateCam(apiResponse.time)
+      // need to also return time
+
+      return apiResponse.data
 
     } catch (error) {
       console.error('API Error:', error.message);
@@ -197,23 +333,55 @@ const Map = (props) => {
   // Load the data
   // Do this by calling the fetchdata function when selectedDictionary changes (based on user intraction), and do this by using the built in React useEffect feature
 
- 
+  // const runFetch = async () => {
+  //   console.log('Component rendered, fetch should occur');
+  //   console.log('selectedDictionary:', selectedDictionary);
+    
+  //   const dataloaded_camlevel = await fetchData(selectedDictionary);
+  //   setData(dataloaded_camlevel);
+  // };
 
   useEffect(() => {
-    // load camspot data
-    console.log('Component rendered, fetch should occur');
-    console.log('selectedDictionary:', selectedDictionary);
-    fetchData();
+    // load camlevel data
+    // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
+    const runFetch = async () => {
+      try {
+        console.log('Component rendered, fetch should occur');
+        console.log(subdir)
+        console.log('selectedDictionary:', selectedDictionary);
+  
+        const dataloaded_camlevel = await fetchData(subdir);
+        setData(dataloaded_camlevel);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+  
+    runFetch();
   }, [selectedDictionary]);
+
+  console.log("updated new way with dictname input!")
     
 
   useEffect(() => {
-    // load fcst data. Could put this in the same useeffect above since if one dict changes the other one does too
-    console.log('Component rendered for FCST, fetch should occur for FCST');
-    console.log('selectedFCSTDictionary:', selectedFCSTDictionary);
-    fetchFCST();
-  }, [selectedDictionary,selectedFCSTDictionary]);
+    // same as above but for hrrrlevel; see notes useffect above
+    const runFetch = async () => {
+      try {
+        console.log('Component rendered, fetch should occur');
+        console.log(subdir)
+        console.log('selectedFCSTDictionary:', selectedFCSTDictionary);
+  
+        const dataloaded_hrrrlevel = await fetchData(subdir, selectedFCSTDictionary);
+        setFCSTData(dataloaded_hrrrlevel);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+  
+    runFetch();
+  }, [selectedFCSTDictionary]);
 
+  console.log("updated new way with dictname input on FCST!!")
 
 
   
@@ -503,6 +671,7 @@ const Map = (props) => {
         {/* First dropdown: Live or Historical */}
         <select value={selectedContext} onChange={handleContextChange}>
           <option value="Live">Live</option>
+          <option value="Forecast">Forecast</option>
           <option value="Historical">Historical</option>
         </select>
 
@@ -522,6 +691,21 @@ const Map = (props) => {
             />
           </div>
         )}
+
+        {/* Conditional rendering for forecast selection */}
+        {selectedContext === 'Forecast' && (
+          <div>
+            <label>Select Option: </label>
+            <select value={selectedForecast} onChange={handleForecasetChange}>
+                {forecastOptions.map((option, index) => (
+                    <option key={index} value={option}>
+                        {option}
+                    </option>
+                ))}
+            </select>
+          </div>
+        )}
+
       </div>
       <h2 style={{ margin: '0', padding: '0'}}>Location</h2>
       <p style={{ margin: '0', padding: '0'}}>{`At NYSDOT Camera Locations`}
