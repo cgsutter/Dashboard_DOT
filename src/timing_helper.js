@@ -28,6 +28,25 @@ function roundTimeHour(inputTime) {
 }
 export {roundTimeHour};
 
+function datestring_tofilenamestring(input) {
+    // Split the date and time
+
+    const [datePart, timePart] = input.split(' ');
+    // if empty split, 2024-11-18_11:00
+
+    // // Remove dashes from the date
+    const formattedDate = datePart.replace(/-/g, '');
+
+    // // Extract the hour from the time
+    const [hour, min] = String(timePart).split(':');
+  
+    // Combine the date and hour in the desired format
+    return `V${formattedDate}_${hour}`;
+  }
+
+export {datestring_tofilenamestring};
+
+
 // for forecast files, we want to look for valid times that are 1 hour, 2 hours, 4, hours, etc, into the future from the now (the moment when the user selects to see forecasts). So take the now time, and grab the forecast hours that the user can select from, dynamically based on when they loaded the forecast page. These will be sent back to the Map.js dropdown file 
 function prepListForecastOptions(inputHour) {
     const oneHour = 60 * 60 * 1000;
@@ -118,7 +137,7 @@ function prepFileString_fcst(inputString) {
     const formattedHour = String(hour24).padStart(2, "0");
 
     // Combine into the final string
-    const result = `${year}${formattedMonth}${formattedDay}_${formattedHour}`;
+    const result = `V${year}${formattedMonth}${formattedDay}_${formattedHour}`;
     return result;
 }
 

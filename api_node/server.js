@@ -50,6 +50,7 @@ function getMostRecentFile(dirPath) {
 //   }
 // }
 
+// alphabetically take the first file with the Valid Time subsrting, so it prioritizes the fcst hour 2 (which is the earliest it would be). This also works for the 1) historical where we would also want to be looking at fcst hour 2, and 2) for forecast after user selects which forecast hour to see, where 
 function findFirstFileWithSubstring(directory, searchString) {
   try {
       // Read the directory and get all file names
@@ -92,6 +93,8 @@ app.get('/data', (req, res) => {
   let filePath;
 
   // find the filepath to use in the case that we're looking for the live, dot_camlevel dir
+  // this should be for LIVE option
+  // rather than all these if statements here, just have the UI push two levels of information to the API to do logic pull 
   if (dirName === 'data_camlevel') {
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
     const mostRecentFile = getMostRecentFile(dirPath);
@@ -102,8 +105,8 @@ app.get('/data', (req, res) => {
     console.log(mostRecentFile)
     filePath = path.join(dirPath, mostRecentFile);
   } else if (dirName === 'data_hrrrlevel') { // Additional check for the substring
-    // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
-    const searchString = 'V20241212_12'; // Replace with the substring you're looking for
+    // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
+    const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
     const firstMatchingFile = findFirstFileWithSubstring(dirPath, searchString);
     if (!firstMatchingFile) {
         return res.status(404).json({ message: 'No matching files found' });

@@ -8,6 +8,7 @@ import {roundTimeHour} from './timing_helper.js';
 import {prepFileString} from './timing_helper.js';
 import {prepListForecastOptions} from './timing_helper.js';
 import {prepFileString_fcst} from './timing_helper.js';
+import {datestring_tofilenamestring} from './timing_helper.js';
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";  // 
@@ -38,7 +39,8 @@ const Map = (props) => {
   const [stringDate, setStringDate] = useState('');
   const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options
   const [selectedForecast, setSelectedForecast] = useState('Forecast for 11/15/2024, 09:00 PM ET');
-  const [fileForecast, setFileForecast] = useState('');
+  const [fileForecast, setFileForecast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
+  const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(''); // 
   // these should be for historic only
   // For the 
   // const [autoRefresh, setAutoRefresh] = useState(true);
@@ -187,11 +189,28 @@ const Map = (props) => {
 
   
 // set date related strings and lists
+// cant have all date-related timing helpers together because one needs to change for the other, so they need to be separate useffects. o/w may run them out of order and not wait for the first one, like rounded, to run first
+
   useEffect(() => {
     setRounded(roundTimeHour(selectedDate));
+  }, [selectedDate]);
+
+  console.log("ROUNDED!")
+  console.log(rounded)
+
+  // these two can run in same useeffect bc they both jst rely on changes from rounded, not from each other. 
+  useEffect(() => {
     setStringDate(prepFileString(rounded));
     setForecastOptions(prepListForecastOptions(rounded));
-  }, [selectedDate]);
+  }, [rounded]);
+
+  console.log("STRING DATE!")
+  console.log(stringDate)
+  console.log(typeof stringDate); 
+
+  console.log("FORECAST OPTIOINS!")
+  console.log(forecastOptions)
+
 
 
   // useEffect(() => {
@@ -252,8 +271,17 @@ const Map = (props) => {
     setFileForecast(prepFileString_fcst(selectedForecast));
   }, [selectedForecast]);
 
-  console.log("FILE for forecast")
+  console.log("FILE for forecast prepped after user selection")
   console.log(fileForecast)
+
+  // Prep file string for the HRRR file to use in the case of Live or Historical. Unlike the Forecast context, where we have to wait for the user to select which forecast option they want, here gor LIve or Historical, it's just a function of the now selectedDate string
+  // console.log(stringDate)
+  useEffect(() => {
+    setFileLiveOrHistHRRR(datestring_tofilenamestring(stringDate))
+  }, [stringDate]);
+
+  console.log("FILE for HRRR data to look for all conditions, live or historical")
+  console.log(fileLiveOrHistHRRR)
 
 
 
@@ -274,6 +302,8 @@ const Map = (props) => {
       console.log("beginning fetch")
       console.log(dictinput)
       console.log(`${subdirinput}/${dictinput}`)
+      console.log("try sending two params")
+      // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
       const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=${subdirinput}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
@@ -312,6 +342,7 @@ const Map = (props) => {
     try {
       console.log("beginning FCST fetch")
       console.log(selectedFCSTDictionary)
+      // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
       const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=data_live/hrrrlevel/${selectedFCSTDictionary}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
@@ -358,16 +389,14 @@ const Map = (props) => {
   useEffect(() => {
     // load camlevel data
     // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
-    // if (showFCST) {}
-    // else if {}
 
-    const runFetch = async () => {
+    const runFetch = async (subdirinput) => {
       try {
         console.log('Component rendered, fetch should occur');
         console.log(subdir)
         // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_camlevel = await fetchData("data_camlevel");
+        const dataloaded_camlevel = await fetchData(subdirinput);
         setData(dataloaded_camlevel);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -375,21 +404,42 @@ const Map = (props) => {
     };
 
 
-    const runFetch_hrrrlevel = async () => {
+    const runFetch_hrrrlevel = async (subdirinput) => {
       try {
         console.log('Component rendered, fetch should occur');
         console.log(subdir)
         // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_hrrrlevel = await fetchData("data_hrrrlevel");
+        const dataloaded_hrrrlevel = await fetchData(subdirinput); //"data_hrrrlevel"
         setFCSTData(dataloaded_hrrrlevel);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
+
+    // if showing current conditions, load cam level data and/or hrrr level data depending on user input
+    if (selectedContext == "Live") {
+      if (showdots){
+        const cams_dir = "data_camlevel";
+        runFetch(cams_dir);
+
+      }
+      if (showFCST){
+        runFetch_hrrrlevel("data_hrrrlevel")
+
+      };
+    }
+
+    
+    //   runFetch();
+    //   runFetch_hrrrlevel();
+    // } else if (selectedContext == "Live" && showFCST== false) {
+    //   runFetch();
+    // } else if (selectedContext == "Forecast")
+
   
-    runFetch();
-    runFetch_hrrrlevel();
+    // runFetch(subdir);
+    // runFetch_hrrrlevel("data_hrrrlevel");
   }, [selectedContext, showFCST, showdots]);
 
   console.log("updated new way with dictname input!")
