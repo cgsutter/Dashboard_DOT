@@ -34,19 +34,45 @@ function getMostRecentFile(dirPath) {
   return files.length > 0 ? files[0].file : null;
 }
 
-function listFilesContainingSubstrings(directoryPath, substring1, substring2) {
+// function listFilesContainingSubstrings(directoryPath, substring1, substring2) {
+//   try {
+//       // Read all files in the directory
+//       const files = fs.readdirSync(directoryPath);
+
+//       // Filter files containing both substring1 and substring2
+//       const filteredFiles = files.filter(file => file.includes(substring1) && file.includes(substring2));
+
+//       console.log("Matching files:", filteredFiles);
+//       return filteredFiles;
+//   } catch (error) {
+//       console.error("Error accessing directory:", error);
+//       return [];
+//   }
+// }
+
+function findFirstFileWithSubstring(directory, searchString) {
   try {
-      // Read all files in the directory
-      const files = fs.readdirSync(directoryPath);
+      // Read the directory and get all file names
+      const files = fs.readdirSync(directory);
 
-      // Filter files containing both substring1 and substring2
-      const filteredFiles = files.filter(file => file.includes(substring1) && file.includes(substring2));
+      // Filter files containing the search string
+      const matchingFiles = files.filter(file => file.includes(searchString));
 
-      console.log("Matching files:", filteredFiles);
-      return filteredFiles;
+      if (matchingFiles.length === 0) {
+          console.log('No matching files found.');
+          return null;
+      }
+
+      // Sort the matching files alphabetically
+      matchingFiles.sort();
+
+      // Get the first file
+      const firstFile = matchingFiles[0];
+      console.log('First matching file:', firstFile);
+      return firstFile;
   } catch (error) {
-      console.error("Error accessing directory:", error);
-      return [];
+      console.error('Error reading directory:', error);
+      return null;
   }
 }
 
@@ -55,6 +81,9 @@ app.get('/data', (req, res) => {
   console.log('print beginning app get');
   const dirName = req.query.param;
   console.log('dirName:', dirName);
+  const dirPath = path.join(__dirname, dirName); 
+  console.log("dirpath")
+  console.log(dirPath)
 
   if (!dirName) {
     return res.status(400).json({ message: 'File name is required' });
@@ -64,7 +93,7 @@ app.get('/data', (req, res) => {
 
   // find the filepath to use in the case that we're looking for the live, dot_camlevel dir
   if (dirName === 'data_camlevel') {
-    const dirPath = path.join(__dirname, dirName); // Update with your specific directory
+    // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
     const mostRecentFile = getMostRecentFile(dirPath);
     if (!mostRecentFile) {
       return res.status(404).json({ message: 'No files found' });
@@ -72,11 +101,20 @@ app.get('/data', (req, res) => {
     console.log('most recent is')
     console.log(mostRecentFile)
     filePath = path.join(dirPath, mostRecentFile);
-  } else { // here is where we will do the other helper functions
-    const fileNamewithext = fileName + '.js';
-    filePath = path.join(__dirname, fileNamewithext);
+  } else if (dirName === 'data_hrrrlevel') { // Additional check for the substring
+    // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
+    const searchString = 'V20241212_12'; // Replace with the substring you're looking for
+    const firstMatchingFile = findFirstFileWithSubstring(dirPath, searchString);
+    if (!firstMatchingFile) {
+        return res.status(404).json({ message: 'No matching files found' });
+    }
+    console.log('First matching file is:');
+    console.log(firstMatchingFile);
+    filePath = path.join(dirPath, firstMatchingFile);
+  } else { // Fallback for other cases
+      const fileNamewithext = fileName + '.js';
+      filePath = path.join(__dirname, fileNamewithext);
   }
-
   // remove for new
   // const fileNamewithext = fileName + '.js';
   // const filePath = path.join(__dirname, fileNamewithext); //__dirname, 'data', fileNamewithexts

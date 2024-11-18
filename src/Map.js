@@ -64,15 +64,15 @@ const Map = (props) => {
 
   // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
-    switch (selectedDictionary) {
-      case 'camlocs_current':
-        return 'Map: Current road surface conditions';
-      case 'camlocs_case_20220203_06':
-        return 'Map: Case Study: Feb 3 2022 at 1am EST';
-      case 'camlocs_case_20220203_18':
-        return 'Map: Case Study: Feb 3 2022 at 1pm EST';
+    switch (selectedContext) {
+      case 'Live':
+        return 'Current road surface conditions';
+      case 'Forecast':
+        return 'Forecasted future road surface conditions';
+      case 'Historical':
+        return 'Past road surface conditions';
       default:
-        return 'Map: Road surface conditions';
+        return 'Map: road surface conditions';
     }
   };
 
@@ -100,20 +100,21 @@ const Map = (props) => {
   console.log(conditions)
 
   // Define this function to handle whichever case the user wants to map, based on their selection from the dropdown dashbaord
-  const handleDictionaryChange = (event) => {
-    const value = event.target.value;
-    setSelectedDictionary(value);
+  // REMOVE 1116
+  // const handleDictionaryChange = (event) => {
+  //   const value = event.target.value;
+  //   setSelectedDictionary(value);
 
-    //  TO COME BACK TO: I think the map is loading twice bc of how the fcst dict changes AFTER the regular data dict changes
-    //  add the second piece taht we want the toggle to adjust, the forecast only json file name too (not just the cam level one)
-    if (value === "camlocs_current") {
-      setSelectedFCSTDictionary("FCST_current");
-    } else if (value === "camlocs_case_20220203_06") { //camdata_casestudy_20220203_06
-      setSelectedFCSTDictionary("FCST_casestudy_20220203_06");
-    } else if (value === "camlocs_case_20220203_18") {
-      setSelectedFCSTDictionary("FCST_casestudy_20220203_18");
-    }
-  };
+  //   //  TO COME BACK TO: I think the map is loading twice bc of how the fcst dict changes AFTER the regular data dict changes
+  //   //  add the second piece taht we want the toggle to adjust, the forecast only json file name too (not just the cam level one)
+  //   if (value === "camlocs_current") {
+  //     setSelectedFCSTDictionary("FCST_current");
+  //   } else if (value === "camlocs_case_20220203_06") { //camdata_casestudy_20220203_06
+  //     setSelectedFCSTDictionary("FCST_casestudy_20220203_06");
+  //   } else if (value === "camlocs_case_20220203_18") {
+  //     setSelectedFCSTDictionary("FCST_casestudy_20220203_18");
+  //   }
+  // };
 
   console.log("CHECK THE FCST ONLY DICT NAME!")
   console.log(selectedFCSTDictionary)
@@ -176,22 +177,35 @@ const Map = (props) => {
       setSubdir("data_hrrrlevel");
     } else if (selectedContext === "Forecast") {
       setSubdir("data_hrrrlevel");
+      const now = new Date(); 
+      setSelectedDate(now) 
     }
   }, [selectedContext]);
 
+  console.log("changed subdir")
+  console.log(subdir)
+
+  
+// set date related strings and lists
   useEffect(() => {
     setRounded(roundTimeHour(selectedDate));
+    setStringDate(prepFileString(rounded));
+    setForecastOptions(prepListForecastOptions(rounded));
   }, [selectedDate]);
 
 
-  useEffect(() => {
-    setStringDate(prepFileString(rounded));
-  }, [rounded]);
+  // useEffect(() => {
+  //   setStringDate(prepFileString(rounded));
+  // }, [rounded]);
 
 
-  useEffect(() => {
-    setForecastOptions(prepListForecastOptions(rounded));
-  }, [rounded]);
+  // useEffect(() => {
+  //   setForecastOptions(prepListForecastOptions(rounded));
+  // }, [rounded]);
+
+
+  console.log("Subdir")
+  console.log(subdir)
 
   console.log("PRINT TIME FOR LIVE")
   console.log(selectedDate)
@@ -344,34 +358,30 @@ const Map = (props) => {
   useEffect(() => {
     // load camlevel data
     // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
+    // if (showFCST) {}
+    // else if {}
+
     const runFetch = async () => {
       try {
         console.log('Component rendered, fetch should occur');
         console.log(subdir)
-        console.log('selectedDictionary:', selectedDictionary);
+        // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_camlevel = await fetchData(subdir);
+        const dataloaded_camlevel = await fetchData("data_camlevel");
         setData(dataloaded_camlevel);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-  
-    runFetch();
-  }, [selectedDictionary]);
 
-  console.log("updated new way with dictname input!")
-    
 
-  useEffect(() => {
-    // same as above but for hrrrlevel; see notes useffect above
-    const runFetch = async () => {
+    const runFetch_hrrrlevel = async () => {
       try {
         console.log('Component rendered, fetch should occur');
         console.log(subdir)
-        console.log('selectedFCSTDictionary:', selectedFCSTDictionary);
+        // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_hrrrlevel = await fetchData(subdir, selectedFCSTDictionary);
+        const dataloaded_hrrrlevel = await fetchData("data_hrrrlevel");
         setFCSTData(dataloaded_hrrrlevel);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -379,7 +389,29 @@ const Map = (props) => {
     };
   
     runFetch();
-  }, [selectedFCSTDictionary]);
+    runFetch_hrrrlevel();
+  }, [selectedContext, showFCST, showdots]);
+
+  console.log("updated new way with dictname input!")
+    
+  // remove 1116
+  // useEffect(() => {
+  //   // same as above but for hrrrlevel; see notes useffect above
+  //   const runFetch = async () => {
+  //     try {
+  //       console.log('Component rendered, fetch should occur');
+  //       console.log(subdir)
+  //       console.log('selectedFCSTDictionary:', selectedFCSTDictionary);
+  
+  //       const dataloaded_hrrrlevel = await fetchData(subdir, selectedFCSTDictionary);
+  //       setFCSTData(dataloaded_hrrrlevel);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   };
+  
+  //   runFetch();
+  // }, [selectedFCSTDictionary]);
 
   console.log("updated new way with dictname input on FCST!!")
 
@@ -642,8 +674,8 @@ const Map = (props) => {
   };
   }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]); // Re-run when any of these data dependencies change
 
-  console.log("log selectedDictionar")
-  console.log(selectedDictionary)
+  // console.log("log selectedDictionar")
+  // console.log(selectedDictionary)
   console.log("log conditions")
   console.log(conditions)
 
@@ -823,12 +855,12 @@ const Map = (props) => {
       </div>
       <h2 style={{ margin: '0', padding: '0'}}>Conditions:</h2>
 
-      <select onChange={handleDictionaryChange} value={selectedDictionary}>
+      {/* <select onChange={handleDictionaryChange} value={selectedDictionary}>
         <option value="camlocs_current">Currently </option>
         {/* <option value="camdata_casestudy">Case study example</option> */}
-        <option value="camlocs_case_20220203_06">Forecast in 2 Hours</option>
+        {/* <option value="camlocs_case_20220203_06">Forecast in 2 Hours</option>
         <option value="camlocs_case_20220203_18">Forecast in 2 Hours</option>
-      </select>
+      </select> */}
       
       <div
         ref={mapContainer}
