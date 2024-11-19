@@ -4,7 +4,7 @@ import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
 import Tooltip from './Tooltip'; // Import the Tooltip component
-import {roundTimeHour} from './timing_helper.js';
+import {roundTimeToHour} from './timing_helper.js';
 import {prepFileString} from './timing_helper.js';
 import {prepListForecastOptions} from './timing_helper.js';
 import {prepFileString_fcst} from './timing_helper.js';
@@ -32,15 +32,22 @@ const Map = (props) => {
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
-  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
   const [subdir, setSubdir] = useState('data_camlevel'); // this will be adjusted based on the selection of Context (this is not a toggle itself, but changed based on user toggle)
-  const [selectedDate, setSelectedDate] = useState(new Date('2024-01-01T00:00:00'));  // Default to the current date bc cant use null
-  const [rounded, setRounded] = useState(new Date());
-  const [stringDate, setStringDate] = useState('');
+  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
+  const [flagLive, setFlagLive] = useState(false);
+  const [flagFCST, setFlagFCST] = useState(false);
+  const [flagHist, setFlagHist] = useState(false);
+  // Need to set initial values so that the map loads correctly under the initialization of Live. By default in React, these initial state variables are set sequentially. We need them to be dynamic based on the time that the site is loaded, but they still need initial values. Without having in initial values (for example, if we wait for a useEffect to load based on the setDate state), the initial site load won't load. So we need the initial values to be functions (dynamic) of the current time, we need the initialized states to depend on selectedDate, as done below, and it works sequentially as needed. Note that we *also* have these setState functions evaluated in a useEffect to account for the case that the user clicks Forecast or Historical, and then *goes back* to Live.
+  const [selectedDate, setSelectedDate] = useState(new Date());  // Default to the current date and time bc default loading selection, setContext, is Live
+  const [roundedToHr, setRoundedToHr] = useState(roundTimeToHour(selectedDate));
+  const [stringRoundedToHr, setStringRoundedToHr] = useState(prepFileString(roundedToHr)); 
+  const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(datestring_tofilenamestring(stringRoundedToHr)); 
+  // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
   const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options
-  const [selectedForecast, setSelectedForecast] = useState('Forecast for 11/15/2024, 09:00 PM ET');
+  const [selectedForecast, setSelectedForecast] = useState(''); // user selected forecast which is a string (which will need to then prepare the filename, see below)
+  const [userForecast, setUserForecast] = useState('')
   const [fileForecast, setFileForecast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
-  const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(''); // this may need an initial value, cant call inside a useffect bc it will only be run if something changes
+
 
   // const [level, setLevel] = useState(''); // need this extra
   // these should be for historic only
@@ -51,8 +58,8 @@ const Map = (props) => {
   // const [fcst2hr, setfcst2hr] = useState('')
   // const [fcst2hr, setfcst2hr] = useState('')
 
-  
-  console.log(rounded)
+  // console.log("initial print item")
+  // console.log(selectedDate)
 
   // // Toggle handler for checkbox
   // const handleToggleChange = () => {
@@ -63,8 +70,8 @@ const Map = (props) => {
   //   setShowdots(!showdots);
   // };
 
-  console.log("SELECTED DATE FOR HISTORICAL CHECK")
-  console.log(selectedDate)
+  // console.log("SELECTED DATE FOR HISTORICAL CHECK")
+  // console.log(selectedDate)
 
   // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
@@ -100,8 +107,8 @@ const Map = (props) => {
     }));
   };
 
-  console.log("log conditions")
-  console.log(conditions)
+  // console.log("log conditions")
+  // console.log(conditions)
 
   // Define this function to handle whichever case the user wants to map, based on their selection from the dropdown dashbaord
   // REMOVE 1116
@@ -120,8 +127,8 @@ const Map = (props) => {
   //   }
   // };
 
-  console.log("CHECK THE FCST ONLY DICT NAME!")
-  console.log(selectedFCSTDictionary)
+  // console.log("CHECK THE FCST ONLY DICT NAME!")
+  // console.log(selectedFCSTDictionary)
 
   // // Function to toggle auto-update on/off based on checkbox input
   // const handleAutoUpdateChange = (event) => {
@@ -145,9 +152,9 @@ const Map = (props) => {
   //   // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
   //   const runFetch = async () => {
   //     try {
-  //       console.log('Component rendered, fetch should occur');
-  //       console.log(subdir)
-  //       console.log('selectedDictionary:', selectedDictionary);
+  //       // console.log('Component rendered, fetch should occur');
+  //       // console.log(subdir)
+  //       // console.log('selectedDictionary:', selectedDictionary);
   
   //       const dataloaded_camlevel = await fetchData(subdir);
   //       setData(dataloaded_camlevel);
@@ -161,8 +168,8 @@ const Map = (props) => {
 
   // useEffect(() => {
 
-  //   // const rounded_calculated = roundTimeHour(selectedDate);
-  //   setRounded(roundTimeHour(selectedDate));
+  //   // const rounded_calculated = roundTimeToHour(selectedDate);
+  //   setRounded(roundTimeToHour(selectedDate));
 
   // }) [selectedDate]
 
@@ -171,58 +178,278 @@ const Map = (props) => {
   useEffect(() => {
     if (selectedContext === "Live") { 
       // set the subdir for the API to search for the most recent file for camlevel
-      setSubdir("data_camlevel");
+      // setSubdir("data_camlevel");
       // set the current datetime for the API to search for the best hrrr-level data. Note that upon loading, the default will use the current time, but need this in here in case the user switches from live, to historical, and then back to live (need to reset it to current time)
       const now = new Date(); 
-      console.log(now); 
+      // console.log(now); 
       setSelectedDate(now) ;
       setShowdots(true);
       setShowFCST(true);
-      // setSelectedDate('2024-01-01T00:00:00') ; // this is for the forecast file pull
+      setFlagLive(true);
+      setFlagFCST(false);
+      setFlagHist(false);
+      console.log("ran initial useeffect w ifs, Live")
+      console.log(selectedDate)
+
     } else if (selectedContext === "Historical") { // if the user selects historical or forecast, they will select the datetime they want and it will be set that way
       setSubdir("data_hrrrlevel");
       setShowdots(true);
       setShowFCST(true);
+      setFlagLive(false);
+      setFlagFCST(false);
+      setFlagHist(true);
+      // backfill based on user selection NEED TO DO
     } else if (selectedContext === "Forecast") {
       setSubdir("data_hrrrlevel");
       setShowdots(false);
       setShowFCST(true);
-      const now = new Date(); 
-      setSelectedDate(now) 
+      setFlagLive(false);
+      setFlagFCST(true);
+      setFlagHist(false);
+      const now_fcst = new Date(); 
+      setSelectedDate(now_fcst) 
+      console.log("ran initial useeffect w ifs, Forecast")
+      console.log(selectedDate)
     }
   }, [selectedContext]); 
 
-  console.log("changed subdir")
-  console.log(subdir)
+  // do sequence of useeffects for Live
+  useEffect(() => {
+    // console.log("prep step 1 for changing context")
+    if (selectedContext === "Live") { 
+      // console.log("for live or forecast");
+      setRoundedToHr(roundTimeToHour(selectedDate));
+      console.log(roundedToHr);
+    } else if (selectedContext === "Historical") { 
+      console.log("do xyz... fill in later")
+      // maybe dont need this at all for roudning time?
+    }
+
+  }, [selectedDate, selectedContext]) // need to also adjust based on selectedContext bc the selectedDate may not change between Live and
+
+
+
+  // if selectedDate changes (due to context changing) then do different things depending on the context. Note that these have to be broken up into multiple useEffects in order based on squential dependencies (needing one before the other, etc). For Live, Forecast, or Historcial, there are multiple steps needed for each of those (see steps 1-3 below) but what's needed as each step are different depending on context selection
+  // step 1
+  useEffect(() => {
+    console.log("prep step 1 for changing context")
+    if (selectedContext === "Live" || selectedContext === "Forecast") { 
+      console.log("for live or forecast");
+      setRoundedToHr(roundTimeToHour(selectedDate));
+      console.log(roundedToHr);
+    } else if (selectedContext === "Historical") { 
+      console.log("do xyz... fill in later")
+      // maybe dont need this at all for roudning time?
+    }
+
+  }, [selectedDate, selectedContext]) // need to also adjust based on selectedContext bc the selectedDate may not change between Live and
+
+  // step 2
+  useEffect(() => {
+    console.log("prep step 2 for changing context")
+    if (selectedContext === "Live") { 
+      console.log("for live")
+      setStringRoundedToHr(prepFileString(roundedToHr)); 
+      console.log(stringRoundedToHr);
+    } else if (selectedContext === "Forecast"){
+      console.log("for forecast")
+      console.log(roundedToHr)
+      setForecastOptions(prepListForecastOptions(roundedToHr));
+      console.log("still in step2 ")
+      console.log(forecastOptions);
+    } else if (selectedContext === "Historical") { 
+      console.log("do abc... fill in later")
+      // maybe dont need this at all for roudning time?
+    }
+
+  }, [selectedContext, roundedToHr])
+
+  // step 3
+  // setFileLiveOrHistHRRR] =  useState(datestring_tofilenamestring(stringRoundedToHr)); 
+  useEffect(() => {
+    console.log("prep step 3 for changing context");
+
+    if (selectedContext === "Live") { 
+      console.log("for live");
+      setFileLiveOrHistHRRR(datestring_tofilenamestring(stringRoundedToHr)); 
+      console.log(fileLiveOrHistHRRR);
+      // maybe dont need this at all for roudning time?
+    }
+
+  }, [selectedContext, stringRoundedToHr]) 
+
+  useEffect(() => {
+    console.log("prep step 3 for changing context");
+
+    if (selectedContext === "Forecast") { 
+      console.log("for forecast");
+      console.log(selectedForecast)
+      // console.log(userForecast)
+      const ran_file = prepFileString_fcst(selectedForecast);
+      // console.log("ran explicitly")
+      // console.log(abc)
+      setFileForecast(ran_file);
+      // console.log("after running it..")
+      // console.log(fileForecast);
+      console.log("still in step3")
+      console.log(fileForecast)
+    }
+
+  }, [selectedContext, userForecast]) 
+
 
   
-// set date related strings and lists
-// cant have all date-related timing helpers together because one needs to change for the other, so they need to be separate useffects. o/w may run them out of order and not wait for the first one, like rounded, to run first
 
-  useEffect(() => {
-    setRounded(roundTimeHour(selectedDate));
-  }, [selectedDate]);
+  // console.log("changed subdir")
+  // console.log(subdir)
 
-  console.log("ROUNDED!")
-  console.log(rounded)
+  
+  // set date related strings and lists
+  // cant have all date-related timing helpers together because one needs to change for the other, so they need to be separate useffects. o/w may run them out of order and not wait for the first one, like rounded, to run first
+  // need these all to update 1) always upon loading. note that we cant use use the initialized useState rounded, string, selectedHRRRLiveHistoric bc they are functions of selectedDate. So we need two types of useEffects here bc we always need it to load upon page load, but also 2) if selectedDate is changed based on user interaction. --> need two useffects, one for initialization and one for if 
+
+  // upon initial load, always run the required date related strings and file names so that Live populates correctly
+
+  // selectedDate is ALWAYS updated upon load, which will prompt these needed for the initial loadiing of Live, in asynchronous order bc relying on one to change before next on
+
+  // effects 1119
+  // useEffect(() => {
+  //   // input1 is selectedDate, round to hour for hrrr file prep
+  //   console.log("Inside always initialization useeffect")
+  //   console.log(selectedDate)
+  //   setRoundedToHr(roundTimeToHour(selectedDate));
+  //   console.log(roundedToHr)
+  //   console.log("done1")
+  // }, [selectedDate]);
+
+  // useEffect(() => {
+  //   // input1 is selectedDate, round to hour for hrrr file prep
+  //   // console.log("here1")
+  //   console.log("Inside always initialization useeffect 2")
+  //   console.log(roundedToHr)
+  //   setStringRoundedToHr(prepFileString(roundedToHr));
+  //   console.log(stringRoundedToHr)
+  //   console.log("done2")
+  // }, [roundedToHr]);
+
+  // useEffect(() => {
+  //   // input1 is selectedDate, round to hour for hrrr file prep
+  //   console.log("Inside always initialization useeffect 3")
+  //   console.log(stringRoundedToHr)
+  //   setFileLiveOrHistHRRR(datestring_tofilenamestring(stringRoundedToHr));
+  //   console.log(fileLiveOrHistHRRR)
+  //   console.log("done3")
+  // }, [stringRoundedToHr]);
+
+
+  // not using 1119
+  // useEffect(() => {
+  //   // input1 is selectedDate, round to hour for hrrr file prep
+  //   const step1 = async (input1) => {
+  //     await setRoundedToHr(roundTimeToHour(input1));
+  //   };
+
+  //   // input2 is roundedToHr (note, not _fcst version)
+  //   // dont actually think i need this for the Live option? 
+  //   const step2 = async (input2) => {
+  //     await setStringRoundedToHr(prepFileString(input2));
+  //   };
+
+  //   // input 3 stringRoundedToHr
+  //   const step3 = async (input3) => {
+  //     await setFileLiveOrHistHRRR(input3);
+  //   };
+
+  //   const sequentialExecution = async () => {
+  //     await step1(selectedDate);
+  //     // console.log("inside sequential: Rounded to hour date for HRRR file");
+  //     // console.log(roundedToHr)
+  //     await step2(roundedToHr);
+  //     // console.log("inside sequential: Rounded to hour string for HRRR file");
+  //     // console.log(stringRoundedToHr);
+  //     await step3(stringRoundedToHr);
+  //     // console.log("inside sequential: FILENAME for HRRR data to look for all conditions, live or historical")
+  //     // console.log(fileLiveOrHistHRRR)
+  //   };
+  
+  //   sequentialExecution();
+
+
+  // }, []);
+
+
+
+
+
+  // // upon context change, run the date-related strings, lists, filenames, based on whether Forecast or Historical is selected. Note some of the basic string prep functions are repeated in both Live, Forecats, Historical
+  // useEffect(() => {
+  //   // round to nearest time, 5 min or 60?
+  //   // input1 is selectedDate
+  //   const step1 = async (input1) => {
+  //     await setRoundedToHr(roundTimeToHour(input1));
+  //   };
+  
+  //   // input2 is rounded
+  //   // neither of these functions in here rely on each other which is why they can be run at the same time
+  //   const step2 = async (input2) => {
+  //     await setStringRoundedToHr(prepFileString(input2));
+  //     await setForecastOptions(prepListForecastOptions(input2));
+  //   };
+
+
+  //   // input3 is selectedForecast
+  //   const step3 = async (input3) => {
+  //     await setFileForecast(prepFileString_fcst(input3));
+  //   }; 
+
+  //   // input4 is stringRoundedToHr
+  //   const step4 = async (input4) => {
+  //     await setFileLiveOrHistHRRR(datestring_tofilenamestring(input4));
+  //   };
+  
+  //   // console.log("FILE for HRRR data to look for all conditions, live or historical")
+  //   // console.log(fileLiveOrHistHRRR)
+
+
+  //   const sequentialExecution = async () => {
+  //     await step1(selectedDate);
+  //     await step2();
+  //     await step3();
+  //     // console.log("FILE for forecast prepped after user selection");
+  //     // console.log(fileForecast);
+  //     await step4();
+  //     // console.log("FILE for HRRR data to look for all conditions, live or historical")
+  //     // console.log(fileLiveOrHistHRRR)
+  //   };
+  
+  //   sequentialExecution();
+  // }, [dependency]);
+
+  // useEffect(() => {
+  //   setRoundedToHr(roundTimeToHour(selectedDate));
+  // }, [selectedDate]);
+
+  // // console.log("ROUNDED ToHr!")
+  // // console.log(roundedToHr)
 
   // these two can run in same useeffect bc they both jst rely on changes from rounded, not from each other. 
-  useEffect(() => {
-    setStringDate(prepFileString(rounded));
-    setForecastOptions(prepListForecastOptions(rounded));
-  }, [rounded]);
+  // useEffect(() => {
+  //   // console.log("here2")
+  //   setStringRoundedToHr(prepFileString(roundedToHr));
+  //   setForecastOptions(prepListForecastOptions(roundedToHr));
+  // }, [roundedToHr]);
 
-  console.log("STRING DATE!")
-  console.log(stringDate)
-  console.log(typeof stringDate); 
+  // console.log("STRING DATE!")
+  // console.log(stringRoundedToHr)
+  // console.log(typeof stringRoundedToHr); 
 
-  console.log("FORECAST OPTIOINS!")
-  console.log(forecastOptions)
+  // console.log("FORECAST OPTIOINS!")
+  // console.log(forecastOptions)
 
 
 
   // useEffect(() => {
-  //   setStringDate(prepFileString(rounded));
+  //   setStringRoundedToHr(prepFileString(rounded));
   // }, [rounded]);
 
 
@@ -231,25 +458,25 @@ const Map = (props) => {
   // }, [rounded]);
 
 
-  console.log("Subdir")
-  console.log(subdir)
+  // console.log("Subdir")
+  // console.log(subdir)
 
-  console.log("PRINT TIME FOR LIVE")
-  console.log(selectedDate)
+  // console.log("PRINT TIME FOR LIVE")
+  // console.log(selectedDate)
 
-  console.log("ROUNDD?")
-  console.log(rounded)
+  // console.log("ROUNDD?")
+  // console.log(roundedToHr)
 
-  console.log("stringdate is")
-  console.log(stringDate)
+  // console.log("stringdate is")
+  // console.log(stringRoundedToHr)
 
-  console.log("forecast options is")
-  console.log(forecastOptions)
+  // console.log("forecast options is")
+  // console.log(forecastOptions)
 
-  console.log("subdir write")
-  console.log(subdir)
+  // console.log("subdir write")
+  // console.log(subdir)
 
-  console.log("send context, ")
+  // console.log("send context, ")
 
   // Handle date change from DatePçicker
   const handleDateChange = (date) => {
@@ -270,26 +497,35 @@ const Map = (props) => {
   
   };
 
-  console.log("set selected fcst")
-  console.log(selectedForecast)
-
-  // // useEffecrt
-  // // prepFileString_fcst
   useEffect(() => {
-    setFileForecast(prepFileString_fcst(selectedForecast));
+    setUserForecast(selectedForecast);
   }, [selectedForecast]);
 
-  console.log("FILE for forecast prepped after user selection")
-  console.log(fileForecast)
+  console.log("WITHOUT ENTERING 3")
+  console.log(selectedForecast)
 
-  // Prep file string for the HRRR file to use in the case of Live or Historical. Unlike the Forecast context, where we have to wait for the user to select which forecast option they want, here gor LIve or Historical, it's just a function of the now selectedDate string
-  // console.log(stringDate)
-  useEffect(() => {
-    setFileLiveOrHistHRRR(datestring_tofilenamestring(stringDate))
-  }, [stringDate]);
+  console.log(userForecast)
 
-  console.log("FILE for HRRR data to look for all conditions, live or historical")
-  console.log(fileLiveOrHistHRRR)
+  // console.log("set selected fcst")
+  // console.log(selectedForecast)
+
+  // // // useEffecrt
+  // // // prepFileString_fcst
+  // useEffect(() => {
+  //   setFileForecast(prepFileString_fcst(selectedForecast));
+  // }, [selectedForecast]);
+
+  // // console.log("FILE for forecast prepped after user selection")
+  // // console.log(fileForecast)
+
+  // // Prep file string for the HRRR file to use in the case of Live or Historical. Unlike the Forecast context, where we have to wait for the user to select which forecast option they want, here gor LIve or Historical, it's just a function of the now selectedDate string
+  // // // console.log(stringRoundedToHr)
+  // useEffect(() => {
+  //   setFileLiveOrHistHRRR(datestring_tofilenamestring(stringRoundedToHr))
+  // }, [stringRoundedToHr]);
+
+  // // console.log("FILE for HRRR data to look for all conditions, live or historical")
+  // // console.log(fileLiveOrHistHRRR)
 
 
 
@@ -298,7 +534,7 @@ const Map = (props) => {
 
 
   // useEffect(() => {
-  //   setStringDate(prepFileString(rounded));
+  //   setStringRoundedToHr(prepFileString(rounded));
   // }, [rounded]);
   
 
@@ -307,14 +543,14 @@ const Map = (props) => {
   // Define this function that, when called on (see useEffect later) will load the corresponding data based on user selection
   const fetchData = async (inputcontext, inputlevel, inputfilestring) => {
     try {
-      console.log("beginning fetch")
-      // console.log(dictinput)
-      console.log(`${inputcontext}, ${inputlevel}, ${inputfilestring}`)
-      console.log("try sending two params")
+      // console.log("beginning fetch")
+      // // console.log(dictinput)
+      // console.log(`${inputcontext}, ${inputlevel}, ${inputfilestring}`)
+      // console.log("try sending two params")
       // const p2 = 'cam';
-      // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
-      console.log("fetch query for API")
-      console.log(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`)
+      // // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
+      // console.log("fetch query for API")
+      // console.log(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`)
       const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
@@ -322,9 +558,9 @@ const Map = (props) => {
           'Content-Type': 'application/json'
         }
       })
-      // .then(async (res)=> await console.log('res',res.json()));
-      console.log("got through await fetch")
-      // console.log(response.status)
+      // .then(async (res)=> await // console.log('res',res.json()));
+      // console.log("got through await fetch")
+      // // console.log(response.status)
 
       if (!response.ok) {
         console.error("Failed to fetch data:", response.statusText);
@@ -332,12 +568,12 @@ const Map = (props) => {
       }
      
       const apiResponse = await response.json();
-      console.log('API Response:', apiResponse); // Log API response
-      console.log("through here????")
+      // console.log('API Response:', apiResponse); // Log API response
+      // console.log("through here????")
 
-      console.log('try printing in map when pulling data from api');
-      console.log('JSON Data CAMLEVEL:', apiResponse.data);
-      console.log('TIME OF CAM DATA UPDATE:', apiResponse.time);
+      // console.log('try printing in map when pulling data from api');
+      // console.log('JSON Data CAMLEVEL:', apiResponse.data);
+      // console.log('TIME OF CAM DATA UPDATE:', apiResponse.time);
       // setData(apiResponse.data); // Update data state
       // setLastUpdateCam(apiResponse.time)
       // need to also return time
@@ -352,8 +588,8 @@ const Map = (props) => {
   // Do this by calling the fetchdata function when selectedDictionary changes (based on user intraction), and do this by using the built in React useEffect feature
 
   // const runFetch = async () => {
-  //   console.log('Component rendered, fetch should occur');
-  //   console.log('selectedDictionary:', selectedDictionary);
+  //   // console.log('Component rendered, fetch should occur');
+  //   // console.log('selectedDictionary:', selectedDictionary);
     
   //   const dataloaded_camlevel = await fetchData(selectedDictionary);
   //   setData(dataloaded_camlevel);
@@ -365,9 +601,9 @@ const Map = (props) => {
 
     const runFetch = async (inputcontext, inputlevel, inputfilestring) => {
       try {
-        console.log('Component rendered, fetch should occur');
-        console.log(subdir)
-        // console.log('selectedDictionary:', selectedDictionary);
+        // console.log('Component rendered, fetch should occur');
+        // console.log(subdir)
+        // // console.log('selectedDictionary:', selectedDictionary);
   
         const dataloaded_camlevel = await fetchData(inputcontext, inputlevel, inputfilestring);
         setData(dataloaded_camlevel);
@@ -379,9 +615,9 @@ const Map = (props) => {
 
     const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring) => {
       try {
-        console.log('Component rendered, fetch should occur');
-        console.log(subdir)
-        // console.log('selectedDictionary:', selectedDictionary);
+        // console.log('Component rendered, fetch should occur');
+        // console.log(subdir)
+        // // console.log('selectedDictionary:', selectedDictionary);
   
         const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring); //"data_hrrrlevel"
         setFCSTData(dataloaded_hrrrlevel);
@@ -392,32 +628,32 @@ const Map = (props) => {
 
     // if showing current conditions, load cam level data and/or hrrr level data depending on user input
     if (selectedContext == "Live") {
-      console.log("entering live?????")
+      // console.log("entering live?????")
       if (showdots){
         // const cams_dir = "data_camlevel";
-        console.log("TRY TO PRINT IN LOADING USEEFFECT")
+        // console.log("TRY TO PRINT IN LOADING USEEFFECT")
         // setDirLevel("data_camlevel")
-        // console.log(selectedContext, dirLevel)
+        // // console.log(selectedContext, dirLevel)
         runFetch(selectedContext, "data_camlevel", "irrelev.js");
-        console.log("print data inside load if")
-        console.log(data)
+        // console.log("print data inside load if")
+        // console.log(data)
 
       }
       if (showFCST){
-        console.log("entering show fcst???")
+        // console.log("entering show fcst???")
         // setDirLevel("data_hrrrlevel")
-        console.log(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
+        // console.log(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
         runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
 
       }
     
     } else if (selectedContext == "Forecast"){
-      console.log("entered forecast")
+      // console.log("entered forecast")
       runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileForecast)
     }
 
-    // console.log("DIRECTORY LEVEL")
-    // console.log(dirLevel)
+    // // console.log("DIRECTORY LEVEL")
+    // // console.log(dirLevel)
 
     
     //   runFetch();
@@ -431,16 +667,16 @@ const Map = (props) => {
     // runFetch_hrrrlevel("data_hrrrlevel");
   }, [selectedContext, showFCST, showdots]);
 
-  console.log("updated new way with dictname input!")
+  // console.log("updated new way with dictname input!")
     
   // remove 1116
   // useEffect(() => {
   //   // same as above but for hrrrlevel; see notes useffect above
   //   const runFetch = async () => {
   //     try {
-  //       console.log('Component rendered, fetch should occur');
-  //       console.log(subdir)
-  //       console.log('selectedFCSTDictionary:', selectedFCSTDictionary);
+  //       // console.log('Component rendered, fetch should occur');
+  //       // console.log(subdir)
+  //       // console.log('selectedFCSTDictionary:', selectedFCSTDictionary);
   
   //       const dataloaded_hrrrlevel = await fetchData(subdir, selectedFCSTDictionary);
   //       setFCSTData(dataloaded_hrrrlevel);
@@ -452,7 +688,7 @@ const Map = (props) => {
   //   runFetch();
   // }, [selectedFCSTDictionary]);
 
-  console.log("updated new way with dictname input on FCST!!")
+  // console.log("updated new way with dictname input on FCST!!")
 
 
   
@@ -628,14 +864,14 @@ const Map = (props) => {
 
     // 2 manage adding cam level dots
 
-    console.log("check what is data")
-    console.log(data)
+    // console.log("check what is data")
+    // console.log(data)
 
     // convert into array of conditions 
     const conditionsArray = makeArray(conditions)
 
-    console.log("check what is conditions (these are user-selected")
-    console.log(conditions)
+    // console.log("check what is conditions (these are user-selected")
+    // console.log(conditions)
     // Filter and order the data
     // Step 1: Filter the data based on selected conditions
     const filteredData = filterDataByConditions(data, conditionsArray);
@@ -651,8 +887,8 @@ const Map = (props) => {
 
 
     if (showdots) {
-      console.log("DOTS DATA!!")
-      console.log(dotsData)
+      // console.log("DOTS DATA!!")
+      // console.log(dotsData)
 
       if (mapInstance.getSource('dots')) {
         mapInstance.getSource('dots').setData({
@@ -713,10 +949,10 @@ const Map = (props) => {
   };
   }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]); // Re-run when any of these data dependencies change
 
-  // console.log("log selectedDictionar")
-  // console.log(selectedDictionary)
-  console.log("log conditions")
-  console.log(conditions)
+  // // console.log("log selectedDictionar")
+  // // console.log(selectedDictionary)
+  // console.log("log conditions")
+  // console.log(conditions)
 
   return (
 
