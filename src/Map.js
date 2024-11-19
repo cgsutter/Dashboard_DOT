@@ -31,7 +31,7 @@ const Map = (props) => {
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
-  const [showFCST, setShowFCST] = useState(false); // Toggle for FCST data
+  const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
   const [subdir, setSubdir] = useState('data_camlevel'); // this will be adjusted based on the selection of Context (this is not a toggle itself, but changed based on user toggle)
   const [selectedDate, setSelectedDate] = useState(new Date('2024-01-01T00:00:00'));  // Default to the current date bc cant use null
@@ -167,7 +167,7 @@ const Map = (props) => {
   // }) [selectedDate]
 
 
-
+  // anytime the context changes, refresh to have certain constants reset (e.g. for Live view, both cams and everywhere should be toggled yes. For forecast view, cam data should be unchecked (greyed out even))
   useEffect(() => {
     if (selectedContext === "Live") { 
       // set the subdir for the API to search for the most recent file for camlevel
@@ -175,16 +175,22 @@ const Map = (props) => {
       // set the current datetime for the API to search for the best hrrr-level data. Note that upon loading, the default will use the current time, but need this in here in case the user switches from live, to historical, and then back to live (need to reset it to current time)
       const now = new Date(); 
       console.log(now); 
-      setSelectedDate(now) 
+      setSelectedDate(now) ;
+      setShowdots(true);
+      setShowFCST(true);
       // setSelectedDate('2024-01-01T00:00:00') ; // this is for the forecast file pull
     } else if (selectedContext === "Historical") { // if the user selects historical or forecast, they will select the datetime they want and it will be set that way
       setSubdir("data_hrrrlevel");
+      setShowdots(true);
+      setShowFCST(true);
     } else if (selectedContext === "Forecast") {
       setSubdir("data_hrrrlevel");
+      setShowdots(false);
+      setShowFCST(true);
       const now = new Date(); 
       setSelectedDate(now) 
     }
-  }, [selectedContext]);
+  }, [selectedContext]); 
 
   console.log("changed subdir")
   console.log(subdir)
@@ -403,11 +409,15 @@ const Map = (props) => {
         console.log(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
         runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
 
-      };
+      }
+    
+    } else if (selectedContext == "Forecast"){
+      console.log("entered forecast")
+      runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileForecast)
     }
 
-    console.log("DIRECTORY LEVEL")
-    console.log(dirLevel)
+    // console.log("DIRECTORY LEVEL")
+    // console.log(dirLevel)
 
     
     //   runFetch();

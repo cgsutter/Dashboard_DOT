@@ -160,7 +160,7 @@ app.get('/data', (req, res) => {
     console.log('first matching file')
     console.log(firstMatchingFile)
     filePath = path.join(dirPath, firstMatchingFile);
-  } else if (param1 === "Forecast") { // Additional check for the substring
+  } else if (param1.includes("Forecast")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
     // console.log('dirName:', dirName);
     // const dirPath = path.join(__dirname, dirName); 
