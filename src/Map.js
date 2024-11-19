@@ -739,8 +739,17 @@ const Map = (props) => {
       <p style={{ margin: '0', padding: '0'}}>Display live data </p>
       <p style={{ marginTop: '0', marginBottom: '10px'}}>Display historical data (SELECT DATE) </p>
       <div>
+        
         {/* First dropdown: Live or Historical */}
-        <select value={selectedContext} onChange={handleContextChange}>
+        <select 
+          value={selectedContext} 
+          onChange={handleContextChange}
+          style={{
+            fontSize: '16px',  // Adjust font size
+            // fontWeight: 'bold',  // Optional: Bold font
+            padding: '0.5px',  // Optional: Increase padding
+          }}
+        >
           <option value="Live">Live</option>
           <option value="Forecast">Forecast</option>
           <option value="Historical">Historical</option>
@@ -748,7 +757,7 @@ const Map = (props) => {
 
         {/* Conditional rendering for datetime picker */}
         {selectedContext === 'Historical' && (
-          <div>
+          <div style = {{paddingLeft: '20px'}}>
             <label>Select Date and Time</label>
             <DatePicker
               selected={selectedDate}
@@ -762,10 +771,50 @@ const Map = (props) => {
             />
           </div>
         )}
+        {['Live', 'Historical'].includes(selectedContext) && (
+          <div style = {{paddingLeft: '20px'}}>
+            <p style={{ margin: '0', padding: '0'}}>{`At NYSDOT Camera Locations`}
+            <Tooltip content="Data is refreshed every 5 minutes. This option shows model-predicted road surface condition data for locations where there are camera images. Weather data is also incorporated." />
+            <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
+                <input
+                  type="checkbox"
+                  checked={showdots}
+                  onChange={(e) => setShowdots(e.target.checked)}
+                  // style={{ marginLeft: '5px' }}
+                  style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+                />
+                {/* Show FCST Data  */}
+                {/*  uncomment above ^ to add checkbox name */}
+              </label>
+            </p>
+         
+            <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p>
+            {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
+            <p style={{ margin: '0', padding: '0'}}>{`All Areas`}
+            {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
+              <Tooltip content="Data is refreshed at the top of the hour. This option shows model-predicted road surface condition data for all geographic locations based on weather data only, no camera image." />
+              <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
+                  <input
+                    type="checkbox"
+                    checked={showFCST}
+                    onChange={(e) => setShowFCST(e.target.checked)}
+                    // style={{ marginLeft: '5px' }}
+                    style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+                  />
+                  {/* Show FCST Data  */}
+                  {/*  uncomment above ^ to add checkbox name */}
+                </label>
+            </p>
+            <p style={{margin: '0', padding: '0'}}>
+            {`Last updated: ${lastUpdateFCST}`}
+            </p>
+          </div>
+
+        )}
 
         {/* Conditional rendering for forecast selection */}
         {selectedContext === 'Forecast' && (
-          <div>
+          <div style = {{paddingLeft: '20px'}}>
             <label>Select Option: </label>
             <select value={selectedForecast} onChange={handleForecasetChange}>
                 {forecastOptions.map((option, index) => (
@@ -779,41 +828,8 @@ const Map = (props) => {
 
       </div>
       <h2 style={{ margin: '0', padding: '0'}}>Location</h2>
-      <p style={{ margin: '0', padding: '0'}}>{`At NYSDOT Camera Locations`}
-        <Tooltip content="Data is refreshed every 5 minutes. This option shows model-predicted road surface condition data for locations where there are camera images. Weather data is also incorporated." />
-        <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
-            <input
-              type="checkbox"
-              checked={showdots}
-              onChange={(e) => setShowdots(e.target.checked)}
-              // style={{ marginLeft: '5px' }}
-              style={{ transform: 'scale(1.5)', marginRight: '5px' }}
-            />
-            {/* Show FCST Data  */}
-            {/*  uncomment above ^ to add checkbox name */}
-          </label>
-      </p>
-      
-      <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p>
-      {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
-      <p style={{ margin: '0', padding: '0'}}>{`All Areas`}
-      {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
-        <Tooltip content="Data is refreshed at the top of the hour. This option shows model-predicted road surface condition data for all geographic locations based on weather data only, no camera image." />
-        <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
-            <input
-              type="checkbox"
-              checked={showFCST}
-              onChange={(e) => setShowFCST(e.target.checked)}
-              // style={{ marginLeft: '5px' }}
-              style={{ transform: 'scale(1.5)', marginRight: '5px' }}
-            />
-            {/* Show FCST Data  */}
-            {/*  uncomment above ^ to add checkbox name */}
-          </label>
-      </p>
-      <p style={{margin: '0', padding: '0'}}>
-        {`Last updated: ${lastUpdateFCST}`}
-      </p>
+
+
       {/* <div>
         <label>
           <input type="checkbox" checked={showFCST} onChange={handleToggleChange} />
