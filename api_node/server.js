@@ -77,26 +77,68 @@ function findFirstFileWithSubstring(directory, searchString) {
   }
 }
 
+  // console.log("check param 3")
+  // console.log(param3)
+
+  // this is always going to be the dirpath to look based on param2
+
+    // if (!dirName) {
+  //   return res.status(400).json({ message: 'File name is required' });
+  // }
 
 app.get('/data', (req, res) => {
   console.log('print beginning app get');
-  const dirName = req.query.param;
-  console.log('dirName:', dirName);
-  const dirPath = path.join(__dirname, dirName); 
-  console.log("dirpath")
-  console.log(dirPath)
+  // const { param1, param2, param3 } = req.query;
+  const param1 = decodeURIComponent(req.query.param1 || "").trim();
+  const param2 = decodeURIComponent(req.query.param2 || "").trim();
+  const param3 = decodeURIComponent(req.query.param3 || "").trim();
 
-  if (!dirName) {
-    return res.status(400).json({ message: 'File name is required' });
-  }
+  console.log("lengths")
+  console.log(param1.length);
+  console.log(param2.length);
+
+
+
+  console.log("check param 1")
+  console.log(param1)
+
+  console.log("check param 2")
+  console.log(param2)
+
+  console.log("check param 3")
+  console.log(param3)
+
+  const dirPath = path.join(__dirname, param2); 
 
   let filePath;
+
+  console.log("print trues?")
+  console.log(param1 === "Live"); // Logs true or false
+  console.log(param2 === "data_camlevel"); // Logs true or false
+  console.log(param1.trim() === "Live"); // Logs true or false
+  console.log(param2.trim() === "data_camlevel"); // Logs true or false
+  console.log(typeof param1); // Should log "string"
+  console.log(typeof param2); // Should log "string"
+
+  
+  // Update your `if` statement
+  if (param1.includes("Live") && param2.includes("data_camlevel")) {
+    console.log("Conditions matched, entering if block");
+    // Proceed with your logic here
+  } else {
+    console.log("Conditions did not match");
+  }
+
 
   // find the filepath to use in the case that we're looking for the live, dot_camlevel dir
   // this should be for LIVE option
   // rather than all these if statements here, just have the UI push two levels of information to the API to do logic pull 
-  if (dirName === 'data_camlevel') {
+  if (param1.includes("Live") && param2.includes("data_camlevel")) {
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
+    // const dirName = "data_camlevel";
+    // console.log('dirName:', dirName);
+    // const dirPath = path.join(__dirname, param2); 
+    console.log("entering first if")
     const mostRecentFile = getMostRecentFile(dirPath);
     if (!mostRecentFile) {
       return res.status(404).json({ message: 'No files found' });
@@ -104,10 +146,27 @@ app.get('/data', (req, res) => {
     console.log('most recent is')
     console.log(mostRecentFile)
     filePath = path.join(dirPath, mostRecentFile);
-  } else if (dirName === 'data_hrrrlevel') { // Additional check for the substring
+    console.log("setting filepath as ")
+    console.log(filePath)
+  } else if (param1.includes("Live") && param2.includes("data_hrrrlevel")) {
+    // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
+    // const dirName = "data_camlevel";
+    // console.log('dirName:', dirName);
+    // const dirPath = path.join(__dirname, param2); 
+    const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
+    if (!firstMatchingFile) {
+      return res.status(404).json({ message: 'No files found' });
+    }
+    console.log('first matching file')
+    console.log(firstMatchingFile)
+    filePath = path.join(dirPath, firstMatchingFile);
+  } else if (param1 === "Forecast") { // Additional check for the substring
+    // const dirName = "data_hrrrlevel";
+    // console.log('dirName:', dirName);
+    // const dirPath = path.join(__dirname, dirName); 
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
-    const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
-    const firstMatchingFile = findFirstFileWithSubstring(dirPath, searchString);
+    // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+    const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
     if (!firstMatchingFile) {
         return res.status(404).json({ message: 'No matching files found' });
     }
@@ -115,8 +174,7 @@ app.get('/data', (req, res) => {
     console.log(firstMatchingFile);
     filePath = path.join(dirPath, firstMatchingFile);
   } else { // Fallback for other cases
-      const fileNamewithext = fileName + '.js';
-      filePath = path.join(__dirname, fileNamewithext);
+    filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
   }
   // remove for new
   // const fileNamewithext = fileName + '.js';

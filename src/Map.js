@@ -31,7 +31,7 @@ const Map = (props) => {
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
-  const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
+  const [showFCST, setShowFCST] = useState(false); // Toggle for FCST data
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
   const [subdir, setSubdir] = useState('data_camlevel'); // this will be adjusted based on the selection of Context (this is not a toggle itself, but changed based on user toggle)
   const [selectedDate, setSelectedDate] = useState(new Date('2024-01-01T00:00:00'));  // Default to the current date bc cant use null
@@ -40,7 +40,9 @@ const Map = (props) => {
   const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options
   const [selectedForecast, setSelectedForecast] = useState('Forecast for 11/15/2024, 09:00 PM ET');
   const [fileForecast, setFileForecast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
-  const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(''); // 
+  const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(''); // this may need an initial value, cant call inside a useffect bc it will only be run if something changes
+
+  // const [level, setLevel] = useState(''); // need this extra
   // these should be for historic only
   // For the 
   // const [autoRefresh, setAutoRefresh] = useState(true);
@@ -243,7 +245,7 @@ const Map = (props) => {
 
   console.log("send context, ")
 
-  // Handle date change from DatePicker
+  // Handle date change from DatePçicker
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
@@ -297,14 +299,17 @@ const Map = (props) => {
   // Second: Load in the data
 
   // Define this function that, when called on (see useEffect later) will load the corresponding data based on user selection
-  const fetchData = async (subdirinput, dictinput) => {
+  const fetchData = async (inputcontext, inputlevel, inputfilestring) => {
     try {
       console.log("beginning fetch")
-      console.log(dictinput)
-      console.log(`${subdirinput}/${dictinput}`)
+      // console.log(dictinput)
+      console.log(`${inputcontext}, ${inputlevel}, ${inputfilestring}`)
       console.log("try sending two params")
+      // const p2 = 'cam';
       // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
-      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=${subdirinput}`, {
+      console.log("fetch query for API")
+      console.log(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`)
+      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
         headers: {
@@ -337,44 +342,6 @@ const Map = (props) => {
       console.error('API Error:', error.message);
     }
   };
-
-  const fetchFCST = async () => {
-    try {
-      console.log("beginning FCST fetch")
-      console.log(selectedFCSTDictionary)
-      // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
-      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param=data_live/hrrrlevel/${selectedFCSTDictionary}`, {
-        method: 'GET',
-        // credentials: 'include', // Include cookies
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      // .then(async (res)=> await console.log('res',res.json()));
-      console.log("got through await fetch FCST")
-      // console.log(response.status)
-     
-      if (!response.ok) {
-        console.error("Failed to fetch data:", response.statusText);
-        return;
-      }
-     
-      const apiResponse = await response.json();
-      console.log('API Response:', apiResponse); // Log API response
-      console.log("through here????")
-
-      // console.log('try printing in map when pulling data from api');
-      console.log('FCST JSON Data:', apiResponse.data);
-      setFCSTData(apiResponse.data);
-      console.log('after setFCST data FCSTdata should exist:', FCSTdata);
-      // console.log('here1')
-      console.log(apiResponse.time)
-      setLastUpdateFCST(apiResponse.time)
-    } catch (error) {
-      console.error('API Error:', error.message);
-    }
-  };
-
   // Load the data
   // Do this by calling the fetchdata function when selectedDictionary changes (based on user intraction), and do this by using the built in React useEffect feature
 
@@ -390,13 +357,13 @@ const Map = (props) => {
     // load camlevel data
     // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
 
-    const runFetch = async (subdirinput) => {
+    const runFetch = async (inputcontext, inputlevel, inputfilestring) => {
       try {
         console.log('Component rendered, fetch should occur');
         console.log(subdir)
         // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_camlevel = await fetchData(subdirinput);
+        const dataloaded_camlevel = await fetchData(inputcontext, inputlevel, inputfilestring);
         setData(dataloaded_camlevel);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -404,13 +371,13 @@ const Map = (props) => {
     };
 
 
-    const runFetch_hrrrlevel = async (subdirinput) => {
+    const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring) => {
       try {
         console.log('Component rendered, fetch should occur');
         console.log(subdir)
         // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_hrrrlevel = await fetchData(subdirinput); //"data_hrrrlevel"
+        const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring); //"data_hrrrlevel"
         setFCSTData(dataloaded_hrrrlevel);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -419,16 +386,28 @@ const Map = (props) => {
 
     // if showing current conditions, load cam level data and/or hrrr level data depending on user input
     if (selectedContext == "Live") {
+      console.log("entering live?????")
       if (showdots){
-        const cams_dir = "data_camlevel";
-        runFetch(cams_dir);
+        // const cams_dir = "data_camlevel";
+        console.log("TRY TO PRINT IN LOADING USEEFFECT")
+        // setDirLevel("data_camlevel")
+        // console.log(selectedContext, dirLevel)
+        runFetch(selectedContext, "data_camlevel", "irrelev.js");
+        console.log("print data inside load if")
+        console.log(data)
 
       }
       if (showFCST){
-        runFetch_hrrrlevel("data_hrrrlevel")
+        console.log("entering show fcst???")
+        // setDirLevel("data_hrrrlevel")
+        console.log(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
+        runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
 
       };
     }
+
+    console.log("DIRECTORY LEVEL")
+    console.log(dirLevel)
 
     
     //   runFetch();
