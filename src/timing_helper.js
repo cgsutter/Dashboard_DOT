@@ -17,6 +17,14 @@
 //     return time.toISOString();
 // }
 
+function convertToGMT(date) {
+    const offset = date.getTimezoneOffset() * 60 * 1000; // Convert minutes to milliseconds
+    const gmtDate = new Date(date.getTime() + offset);
+    return gmtDate;
+  }
+  export {convertToGMT};
+
+
 function roundTimeToHour(inputTime) {
     if (!(inputTime instanceof Date)) {
         throw new Error("Input must be a Date object");
@@ -86,6 +94,69 @@ function prepListForecastOptions(inputHour) {
 }
 
 export {prepListForecastOptions};
+
+
+function prepDateObject_fcst(inputString) {
+    // Check if the input string starts with the expected prefix
+    const prefix = "Forecast for ";
+    if (!inputString.startsWith(prefix)) {
+        console.error(`Input string does not start with "${prefix}": ${inputString}`);
+        throw new Error("Invalid forecast string format");
+    }
+
+    // Remove the prefix and ' ET'
+    const dateTimePart = inputString.slice(prefix.length).replace(' ET', '');
+
+    // Ensure the string contains a comma (to separate date and time)
+    if (!dateTimePart.includes(", ")) {
+        console.error(`Date and time part is not properly formatted: ${dateTimePart}`);
+        throw new Error("Invalid forecast string format");
+    }
+
+    // Split the date and time part
+    const [datePart, timePart] = dateTimePart.split(", ");
+
+    // Check if both parts are non-empty
+    if (!datePart || !timePart) {
+        console.error(`Date or time part is missing: date="${datePart}", time="${timePart}"`);
+        throw new Error("Invalid forecast string format");
+    }
+
+    // Extract the date components (month, day, year)
+    const [month, day, year] = datePart.split("/");
+    if (!month || !day || !year) {
+        console.error(`Date part is not properly formatted: ${datePart}`);
+        throw new Error("Invalid forecast string format");
+    }
+
+    // Extract the time components (hour, minutes, AM/PM)
+    const [time, period] = timePart.split(" ");
+    if (!time || !period) {
+        console.error(`Time part is not properly formatted: ${timePart}`);
+        throw new Error("Invalid forecast string format");
+    }
+
+    const [hour, minutes] = time.split(":");
+    if (!hour || !minutes) {
+        console.error(`Time is not properly formatted: ${time}`);
+        throw new Error("Invalid forecast string format");
+    }
+
+    // Convert the hour to 24-hour format
+    let hour24 = parseInt(hour, 10);
+    if (period === "PM" && hour24 !== 12) {
+        hour24 += 12;
+    } else if (period === "AM" && hour24 === 12) {
+        hour24 = 0;
+    }
+
+    // Create a Date object
+    const date = new Date(year, month - 1, day, hour24, minutes);
+
+    return date;
+}
+
+export { prepDateObject_fcst };
 
 function prepFileString_fcst(inputString) {
     // Check if the input string starts with the expected prefix
