@@ -151,12 +151,15 @@ const Map = (props) => {
       // console.log(selectedDate)
 
     } else if (selectedContext === "Historical") { // if the user selects historical or forecast, they will select the datetime they want and it will be set that way
+      console.log("break 3 A")
       setSubdir("data_hrrrlevel");
       setShowdots(true);
       setShowFCST(true);
+      console.log("break 3 B")
       setFlagLive(false);
       setFlagFCST(false);
       setFlagHist(true);
+      console.log("break 3 C")
       // backfill based on user selection NEED TO DO
     } else if (selectedContext === "Forecast") {
       // setSubdir("data_hrrrlevel");
@@ -228,9 +231,10 @@ const Map = (props) => {
   }
   ), [fileForecast]; // KS: why is this loading twice? Can see it logged, It's like it's printing the last one and then this new selection one?
 
+  // comment out for new these next two
   useEffect(() => {
     if (flagHist === true) { 
-      setFilePast(prepFileString_fcst(selectedPast));
+      setFilePast(datestring_tofilenamestring(prepFileString(selectedPast)));
       console.log("break for hist");
     }
   }, [selectedPast]) ;
@@ -247,6 +251,13 @@ const Map = (props) => {
   const handleDateChange = (date) => {
     setSelectedPast(date);
   };
+
+  useEffect(() => {
+    if (flagHist === true) { 
+      console.log("selectedPats is updated")
+      console.log(selectedPast)
+    }
+  }, [selectedPast]) ;
 
   // Handle dropdown change (Live or Historical)
   const handleForecasetChange = (e) => {
@@ -370,7 +381,10 @@ const Map = (props) => {
     } else if (selectedContext == "Forecast"){
       // console.log("entered forecast")
       runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileForecast)
-    }
+    } else if (selectedContext == "Historical"){
+      // console.log("entered forecast")
+      runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", filePast)
+  }
 
     // // console.log("DIRECTORY LEVEL")
     // // console.log(dirLevel)
@@ -385,7 +399,7 @@ const Map = (props) => {
   
     // runFetch(subdir);
     // runFetch_hrrrlevel("data_hrrrlevel");
-  }, [flagLive,flagFCST, flagHist, fileForecast, showFCST, showdots]);
+  }, [flagLive,flagFCST, flagHist, fileForecast, filePast, showFCST, showdots]);
 
   // console.log("updated new way with dictname input!")
     

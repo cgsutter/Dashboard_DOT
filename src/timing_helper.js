@@ -17,7 +17,7 @@
 //     return time.toISOString();
 // }
 
-function roundTimeHour(inputTime) {
+function roundTimeToHour(inputTime) {
     if (!(inputTime instanceof Date)) {
         throw new Error("Input must be a Date object");
     }
@@ -26,9 +26,11 @@ function roundTimeHour(inputTime) {
     const roundedTime = new Date(Math.round(inputTime.getTime() / msInAnHour) * msInAnHour);
     return roundedTime;
 }
-export {roundTimeHour};
+export {roundTimeToHour};
 
 function datestring_tofilenamestring(input) {
+
+    // console.log("entered otherscript datestring_tofilenamestring")
     // Split the date and time
 
     const [datePart, timePart] = input.split(' ');
@@ -40,8 +42,12 @@ function datestring_tofilenamestring(input) {
     // // Extract the hour from the time
     const [hour, min] = String(timePart).split(':');
   
+    // console.log(`V${formattedDate}_${hour}`)
+
     // Combine the date and hour in the desired format
     return `V${formattedDate}_${hour}`;
+
+
   }
 
 export {datestring_tofilenamestring};
@@ -49,6 +55,8 @@ export {datestring_tofilenamestring};
 
 // for forecast files, we want to look for valid times that are 1 hour, 2 hours, 4, hours, etc, into the future from the now (the moment when the user selects to see forecasts). So take the now time, and grab the forecast hours that the user can select from, dynamically based on when they loaded the forecast page. These will be sent back to the Map.js dropdown file 
 function prepListForecastOptions(inputHour) {
+
+    // console.log("beginning prepListForecastOptions")
     const oneHour = 60 * 60 * 1000;
     const twoHours = oneHour * 2;
     const fourHours = oneHour * 4;
@@ -61,7 +69,8 @@ function prepListForecastOptions(inputHour) {
         new Date(inputHour.getTime() + eightHours)
     ];
 
-    return hours.map(date =>
+    console.log("got through here too")
+    const listy = hours.map(date =>
         `Forecast for ${date.toLocaleString("en-US", {
             year: "numeric",
             month: "2-digit",
@@ -71,6 +80,9 @@ function prepListForecastOptions(inputHour) {
             hour12: true,
         })} ET`
     );
+
+    // console.log(listy)
+    return listy
 }
 
 export {prepListForecastOptions};
@@ -78,8 +90,8 @@ export {prepListForecastOptions};
 function prepFileString_fcst(inputString) {
     // Check if the input string starts with the expected prefix
     const prefix = "Forecast for ";
-    console.log("heree")
-    console.log(inputString)
+    // console.log("heree")
+    // console.log(inputString)
     if (!inputString.startsWith(prefix)) {
         console.error(`Input string does not start with "${prefix}": ${inputString}`);
         throw new Error("Invalid forecast string format");
@@ -138,20 +150,28 @@ function prepFileString_fcst(inputString) {
 
     // Combine into the final string
     const result = `V${year}${formattedMonth}${formattedDay}_${formattedHour}`;
+    // console.log("in timing helper functions");
+    // console.log(result);
     return result;
 }
 
-export { prepFileString_fcst };
+export { prepFileString_fcst }; 
 
 
 function prepFileString(inputHour) {
+    // console.log("entered otherscript prepFileString")
+    // console.log ("entering function in scrip!!")
+    // console.log("printing the input:)")
+    // console.log(inputHour)
     const year = inputHour.getFullYear();       // e.g., 2024
+    // console.log (year)
     const month = inputHour.getMonth() + 1;    // e.g., 11 (Months are 0-based, so add 1)
     const date = inputHour.getDate();          // e.g., 15
     const hours = String(inputHour.getHours()).padStart(2, '0');  // Ensure two digits for hours
     const minutes = String(inputHour.getMinutes()).padStart(2, '0');  // Ensure two digits for minutes
     const datename = `${year}-${month}-${date} ${hours}:${minutes}`;
 
+    // console.log(datename)
     return datename;
 }
 export {prepFileString};
