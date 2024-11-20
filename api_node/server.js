@@ -93,6 +93,7 @@ app.get('/data', (req, res) => {
   const param2 = decodeURIComponent(req.query.param2 || "").trim();
   const param3 = decodeURIComponent(req.query.param3 || "").trim();
 
+  console.log(param1, param2, param3);
   console.log("lengths")
   console.log(param1.length);
   console.log(param2.length);
@@ -112,13 +113,13 @@ app.get('/data', (req, res) => {
 
   let filePath;
 
-  console.log("print trues?")
-  console.log(param1 === "Live"); // Logs true or false
-  console.log(param2 === "data_camlevel"); // Logs true or false
-  console.log(param1.trim() === "Live"); // Logs true or false
-  console.log(param2.trim() === "data_camlevel"); // Logs true or false
-  console.log(typeof param1); // Should log "string"
-  console.log(typeof param2); // Should log "string"
+  // console.log("print trues?")
+  // console.log(param1 === "Live"); // Logs true or false
+  // console.log(param2 === "data_camlevel"); // Logs true or false
+  // console.log(param1.trim() === "Live"); // Logs true or false
+  // console.log(param2.trim() === "data_camlevel"); // Logs true or false
+  // console.log(typeof param1); // Should log "string"
+  // console.log(typeof param2); // Should log "string"
 
   
   // Update your `if` statement
@@ -161,6 +162,19 @@ app.get('/data', (req, res) => {
     console.log(firstMatchingFile)
     filePath = path.join(dirPath, firstMatchingFile);
   } else if (param1.includes("Forecast")) { // Additional check for the substring
+    // const dirName = "data_hrrrlevel";
+    // console.log('dirName:', dirName);
+    // const dirPath = path.join(__dirname, dirName); 
+    // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
+    // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+    const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
+    if (!firstMatchingFile) {
+        return res.status(404).json({ message: 'No matching files found' });
+    }
+    console.log('First matching file is:');
+    console.log(firstMatchingFile);
+    filePath = path.join(dirPath, firstMatchingFile);
+  } else if (param1.includes("Historical")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
     // console.log('dirName:', dirName);
     // const dirPath = path.join(__dirname, dirName); 

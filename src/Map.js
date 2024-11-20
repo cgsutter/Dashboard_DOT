@@ -34,7 +34,8 @@ const Map = (props) => {
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
   const [subdir, setSubdir] = useState('data_camlevel'); // this will be adjusted based on the selection of Context (this is not a toggle itself, but changed based on user toggle)
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
-  const [flagLive, setFlagLive] = useState(false);
+  // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, and using these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
+  const [flagLive, setFlagLive] = useState(true);
   const [flagFCST, setFlagFCST] = useState(false);
   const [flagHist, setFlagHist] = useState(false);
   // Need to set initial values so that the map loads correctly under the initialization of Live. By default in React, these initial state variables are set sequentially. We need them to be dynamic based on the time that the site is loaded, but they still need initial values. Without having in initial values (for example, if we wait for a useEffect to load based on the setDate state), the initial site load won't load. So we need the initial values to be functions (dynamic) of the current time, we need the initialized states to depend on selectedDate, as done below, and it works sequentially as needed. Note that we *also* have these setState functions evaluated in a useEffect to account for the case that the user clicks Forecast or Historical, and then *goes back* to Live.
@@ -46,6 +47,9 @@ const Map = (props) => {
   const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options
   const [selectedForecast, setSelectedForecast] = useState(''); // user selected forecast which is a string (which will need to then prepare the filename, see below)
   const [fileForecast, setFileForecast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
+  const [selectedPast, setSelectedPast] = useState(''); // user selected
+  const [filePast, setFilePast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
+
 
 
   // const [level, setLevel] = useState(''); // need this extra
@@ -76,13 +80,13 @@ const Map = (props) => {
   const getTitle = () => {
     switch (selectedContext) {
       case 'Live':
-        return 'Current road surface conditions';
+        return 'current road surface conditions';
       case 'Forecast':
-        return 'Forecasted future road surface conditions';
+        return 'forecasted future road surface conditions';
       case 'Historical':
-        return 'Past road surface conditions';
+        return 'past road surface conditions';
       default:
-        return 'Map: road surface conditions';
+        return 'road surface conditions';
     }
   };
 
@@ -105,35 +109,6 @@ const Map = (props) => {
       [event.target.name]: event.target.checked,
     }));
   };
-
-
-  // console.log("log conditions")
-  // console.log(conditions)
-
-  // Define this function to handle whichever case the user wants to map, based on their selection from the dropdown dashbaord
-  // REMOVE 1116
-  // const handleDictionaryChange = (event) => {
-  //   const value = event.target.value;
-  //   setSelectedDictionary(value);
-
-  //   //  TO COME BACK TO: I think the map is loading twice bc of how the fcst dict changes AFTER the regular data dict changes
-  //   //  add the second piece taht we want the toggle to adjust, the forecast only json file name too (not just the cam level one)
-  //   if (value === "camlocs_current") {
-  //     setSelectedFCSTDictionary("FCST_current");
-  //   } else if (value === "camlocs_case_20220203_06") { //camdata_casestudy_20220203_06
-  //     setSelectedFCSTDictionary("FCST_casestudy_20220203_06");
-  //   } else if (value === "camlocs_case_20220203_18") {
-  //     setSelectedFCSTDictionary("FCST_casestudy_20220203_18");
-  //   }
-  // };
-
-  // console.log("CHECK THE FCST ONLY DICT NAME!")
-  // console.log(selectedFCSTDictionary)
-
-  // // Function to toggle auto-update on/off based on checkbox input
-  // const handleAutoUpdateChange = (event) => {
-  //   setAutoUpdate(event.target.checked);
-  // };
 
   // Handle dropdown change (Live or Historical)
   const handleContextChange = (e) => {
@@ -253,10 +228,24 @@ const Map = (props) => {
   }
   ), [fileForecast]; // KS: why is this loading twice? Can see it logged, It's like it's printing the last one and then this new selection one?
 
+  useEffect(() => {
+    if (flagHist === true) { 
+      setFilePast(prepFileString_fcst(selectedPast));
+      console.log("break for hist");
+    }
+  }, [selectedPast]) ;
+
+  useEffect(() => {
+    if (flagHist === true) { 
+      console.log("prepped file name for historical past")
+      console.log(filePast)
+    }
+  }, [filePast]) ;
+
 
   // Handle date change from DatePçicker
   const handleDateChange = (date) => {
-    setSelectedDate(date);
+    setSelectedPast(date);
   };
 
   // Handle dropdown change (Live or Historical)
@@ -396,7 +385,7 @@ const Map = (props) => {
   
     // runFetch(subdir);
     // runFetch_hrrrlevel("data_hrrrlevel");
-  }, [selectedContext, showFCST, showdots]);
+  }, [flagLive,flagFCST, flagHist, fileForecast, showFCST, showdots]);
 
   // console.log("updated new way with dictname input!")
     
@@ -688,7 +677,9 @@ const Map = (props) => {
   return (
 
     <div style={{ marginTop: '0px', padding: '0px' }}>
-      <h1>{`${getTitle()}`}</h1>
+      <h1 style={{ margin:'0',paddingBottom: '0px'}}>Road surface condition detection</h1>
+      <p style={{ fontSize: '18px', fontStyle: 'italic' ,margin: '0', paddingTop: '0px', paddingBottom: '20px'}} >Detected by machine-learning models</p>
+      {/* <h2>{`${getTitle()}`}</h2> */}
       {/* <h3>{`Updated at:`}</h3> */}
       {/* <h3>{`Colo`}</h3> */}
       {/* <label>
@@ -702,35 +693,48 @@ const Map = (props) => {
 
     
 
-      <h2 style={{ margin: '0', padding: '0'}}> Context <Tooltip content="Select whether to display live data or historical data. Live data is the real-time perspective with the most recently updated data, which relevent for an up-to-date picture of the road surface conditions (current and forecasted). The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
-      <p style={{ margin: '0', padding: '0'}}>Display live data </p>
-      <p style={{ marginTop: '0', marginBottom: '10px'}}>Display historical data (SELECT DATE) </p>
-      <div>
+      <h2 style={{ margin: '0'}}> Choose the time to display <Tooltip content="Select whether to display current conditions (present/live), forecasted conditions (future), or historical conditions (from past events). The current conditions representthe real-time perspective with the most recently updated data, which is relevent for an up-to-date picture of the road surface conditions. The forecasted conditions represent future conditions, for which there are are no camera images to make predictions at the NYSDOT camera level. The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
+      {/* <p> Choose whether to display </p> */}
+      {/* <p style={{ margin: '0', paddingTop: '10px', paddingLeft: '20px'}}>Display live data </p>
+      <p style={{ marginTop: '0', marginBottom: '10px'}}>Display historical data (SELECT DATE) </p> */}
+      <div style={{
+        paddingLeft: '10px',  // Left padding
+        // paddingRight: '10px',  // Right padding (optional)
+        paddingTop: '5px',  // Top padding (optional)
+        paddingBottom: '5px',  // Bottom padding (optional)
+      }}>
         
         {/* First dropdown: Live or Historical */}
         <select 
           value={selectedContext} 
           onChange={handleContextChange}
           style={{
-            fontSize: '16px',  // Adjust font size
+            fontSize: '18px',  // Adjust font size
             // fontWeight: 'bold',  // Optional: Bold font
+            // paddingTop: '10px',
+            // paddingLeft: '10px',
             padding: '0.5px',  // Optional: Increase padding
           }}
         >
-          <option value="Live">Live</option>
-          <option value="Forecast">Forecast</option>
-          <option value="Historical">Historical</option>
+          <option value="Live">Current (present)</option>
+          <option value="Forecast">Forecast (future)</option>
+          <option value="Historical">Historical (past)</option>
         </select>
 
         {/* Conditional rendering for datetime picker */}
         {selectedContext === 'Historical' && (
-          <div style = {{paddingLeft: '20px'}}>
-            <label>Select Date and Time</label>
+          <div style = {{paddingTop: '20px',paddingLeft: '20px', overflow:'visible', width: '100%'  }}>
+            <p style={{ margin: '0', padding: '0px',marginBottom: '3px' , marginLeft: '0px',textDecoration: 'underline'}}> Past Date and Time: </p>
+            <label> Select from calendar: </label>
             <DatePicker
-              selected={selectedDate}
+              style = {{marginLeft: '100px'}}
+              // popperModifiers={{
+              //   preventOverflow: { enabled: false }  // Disable overflow prevention
+              // }}
+              selected={selectedPast}
               onChange={handleDateChange}
               showTimeSelect
-              timeIntervals={5} // Time increments of 5 minutes
+              timeIntervals={60} // Time increments of 5 minutes
               minDate={new Date('2024-01-01T00:00:00')} // Start date: Jan 1st, 2024
               dateFormat="Pp" // Date format: MM/DD/YYYY HH:MM
               timeCaption="Time"
@@ -739,51 +743,52 @@ const Map = (props) => {
           </div>
         )}
         {['Live', 'Historical'].includes(selectedContext) && (
-          <div style = {{paddingLeft: '20px'}}>
-            <p style={{ margin: '0', padding: '0'}}>{`At NYSDOT Camera Locations`}
-            <Tooltip content="Data is refreshed every 5 minutes. This option shows model-predicted road surface condition data for locations where there are camera images. Weather data is also incorporated." />
-            <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
+          <div >
+            <p style={{ margin: '0', paddingTop: '15px', paddingLeft: '20px', textDecoration: 'underline'}}> Location detail: </p>
+            <p style={{ margin: '0', paddingTop: '5px', paddingLeft: '20px' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center' }}>
                 <input
                   type="checkbox"
                   checked={showdots}
                   onChange={(e) => setShowdots(e.target.checked)}
-                  // style={{ marginLeft: '5px' }}
-                  style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+                  style={{ transform: 'scale(1)' }}
                 />
-                {/* Show FCST Data  */}
-                {/*  uncomment above ^ to add checkbox name */}
+                Show at NYSDOT Camera Locations (colored dots)
+                <Tooltip content="Data is refreshed every 5 minutes. This option shows model-predicted road surface condition data for locations where there are camera images. Weather data is also incorporated." />
               </label>
             </p>
          
-            <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p>
+            {/* <p style={{margin: '0', padding: '0', marginBottom: '5px'}}>{`Last updated: ${lastUpdateCam}`}</p> */}
             {/* <h3>{`${lastUpdateFCST} for everywhere else`}</h3> */}
-            <p style={{ margin: '0', padding: '0'}}>{`All Areas`}
+            <p style={{ margin: '0', paddingTop: '5px', paddingLeft: '20px'}}>
             {/* <h4>{`Last updated at ${lastUpdateCam}`}</h3> */}
-              <Tooltip content="Data is refreshed at the top of the hour. This option shows model-predicted road surface condition data for all geographic locations based on weather data only, no camera image." />
-              <label style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '10px' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center' }}>
                   <input
                     type="checkbox"
                     checked={showFCST}
                     onChange={(e) => setShowFCST(e.target.checked)}
                     // style={{ marginLeft: '5px' }}
-                    style={{ transform: 'scale(1.5)', marginRight: '5px' }}
+                    style={{ transform: 'scale(1)' }}
                   />
+                  Show at All locations (shading)
+                  <Tooltip content="Data is refreshed at the top of the hour. This option shows model-predicted road surface condition data for all geographic locations based on weather data only, no camera image." />
                   {/* Show FCST Data  */}
                   {/*  uncomment above ^ to add checkbox name */}
                 </label>
             </p>
-            <p style={{margin: '0', padding: '0'}}>
+            {/* <p style={{margin: '0', padding: '0'}}>
             {`Last updated: ${lastUpdateFCST}`}
-            </p>
+            </p> */}
           </div>
 
         )}
 
         {/* Conditional rendering for forecast selection */}
         {selectedContext === 'Forecast' && (
-          <div style = {{paddingLeft: '20px'}}>
-            <label>Select Option: </label>
-            <select value={selectedForecast} onChange={handleForecasetChange}>
+          <div style = {{ marginLeft: '20px', padding: '0px', paddingTop: '10px'}}>
+            <p style={{ margin: '0', padding: '0px',marginBottom: '3px' , marginLeft: '0px',textDecoration: 'underline'}}> Forecast Time: </p>
+            <label>Select from dropdown: </label> 
+            <select value={selectedForecast} onChange={handleForecasetChange} style = {{}} >
                 {forecastOptions.map((option, index) => (
                     <option key={index} value={option}>
                         {option}
@@ -794,7 +799,7 @@ const Map = (props) => {
         )}
 
       </div>
-      <h2 style={{ margin: '0', padding: '0'}}>Location</h2>
+      {/* <h2 style={{ margin: '0', padding: '0'}}>Location</h2> */}
 
 
       {/* <div>
@@ -803,9 +808,12 @@ const Map = (props) => {
           Show FCST Data
         </label>
       </div> */}
+      {/*  textDecoration: 'underline' , */}
       <div id="color-key">
-        <ul style={{ listStyleType: 'none', padding: 0 }}>
-          <li style={{ marginBottom: '5px' }}>
+        <p style={{ margin: '0', paddingTop: '10px', paddingLeft: '30px',textDecoration: 'underline'}}> Conditions shown: </p>
+        
+        <ul style={{ listStyleType: 'none', paddingLeft: '25px' , paddingTop: '0px', marginTop: '5px'}}>
+          <li style={{ marginBottom: '5px',marginTop:'0px', paddingLeft:'5px' }}>
             <input
               type="checkbox"
               name="snow_severe"
@@ -816,7 +824,7 @@ const Map = (props) => {
               Severe snow
             </span>
           </li>
-          <li style={{ marginBottom: '5px' }}>
+          <li style={{ marginBottom: '5px' , paddingLeft:'5px'}}>
             <input
               type="checkbox"
               name="snow"
@@ -827,7 +835,7 @@ const Map = (props) => {
               Snow
             </span>
           </li>
-          <li style={{ marginBottom: '5px' }}>
+          <li style={{ marginBottom: '5px', paddingLeft:'5px' }}>
             <input
               type="checkbox"
               name="wet"
@@ -838,7 +846,7 @@ const Map = (props) => {
               Wet
             </span>
           </li>
-          <li style={{ marginBottom: '5px' }}>
+          <li style={{ marginBottom: '5px' , paddingLeft:'5px'}}>
             <input
               type="checkbox"
               name="dry"
@@ -849,7 +857,7 @@ const Map = (props) => {
               Dry
             </span>
           </li>
-          <li style={{ marginBottom: '5px' }}>
+          <li style={{ marginBottom: '5px', paddingLeft:'5px' }}>
             <input
               type="checkbox"
               name="poor_viz"
@@ -860,7 +868,21 @@ const Map = (props) => {
               Poor visibility
             </span>
           </li>
-          <li style={{ marginBottom: '5px' }}>
+          {showdots && (
+            <li style={{ marginBottom: '5px' , paddingLeft:'5px'}}>
+              <input
+                type="checkbox"
+                name="obs"
+                checked={conditions.obs}
+                onChange={handleConditionChange}
+              />
+              <span style={{ backgroundColor: 'black', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
+                Obstructed camera
+              </span>
+            </li>
+          )}
+
+          {/* <li style={{ marginBottom: '5px' }}>
             <input
               type="checkbox"
               name="obs"
@@ -868,14 +890,14 @@ const Map = (props) => {
               onChange={handleConditionChange}
             />
             <span style={{ backgroundColor: 'black', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
-              Obstructed
+              Obstructed camera
             </span>
-          </li>
+          </li> */}
 
 
         </ul>
       </div>
-      <h2 style={{ margin: '0', padding: '0'}}>Conditions:</h2>
+      <h2 style={{ margin: '0', padding: '0'}}>{`Displaying ${getTitle()}`}</h2>
 
       {/* <select onChange={handleDictionaryChange} value={selectedDictionary}>
         <option value="camlocs_current">Currently </option>
