@@ -52,9 +52,22 @@ function getMostRecentFile(dirPath) {
 
 // alphabetically take the first file with the Valid Time subsrting, so it prioritizes the fcst hour 2 (which is the earliest it would be). This also works for the 1) historical where we would also want to be looking at fcst hour 2, and 2) for forecast after user selects which forecast hour to see, where 
 function findFirstFileWithSubstring(directory, searchString) {
+  // if (!searchString.startsWith('V') || searchString.length !== 11) {
+  //   throw new Error('Invalid input string format');
+  // }
+
+  // Extract date components
+  const year = searchString.slice(1, 5);
+  const month = searchString.slice(5, 7);
+  const day = searchString.slice(7, 9);
+
+  // Create directory based on yyyy mm dd
+  const dirlook = `${directory}/${year}/${month}/${day}`;
+  console.log(dirlook);
+
   try {
       // Read the directory and get all file names
-      const files = fs.readdirSync(directory);
+      const files = fs.readdirSync(dirlook);
 
       // Filter files containing the search string
       const matchingFiles = files.filter(file => file.includes(searchString));
@@ -70,7 +83,9 @@ function findFirstFileWithSubstring(directory, searchString) {
       // Get the first file
       const firstFile = matchingFiles[0];
       console.log('First matching file:', firstFile);
-      return firstFile;
+
+      return `${year}/${month}/${day}/${firstFile}`; //`${directory}/${year}/${month}/${day}/${firstFile}`
+
   } catch (error) {
       console.error('Error reading directory:', error);
       return null;
@@ -111,6 +126,10 @@ app.get('/data', (req, res) => {
 
   const dirPath = path.join(__dirname, param2); 
 
+  console.log("some checks")
+  console.log(dirPath)
+  // findFirstFileWithSubstring(dirPath, "V20241121_01")
+
   let filePath;
 
   // console.log("print trues?")
@@ -122,13 +141,13 @@ app.get('/data', (req, res) => {
   // console.log(typeof param2); // Should log "string"
 
   
-  // Update your `if` statement
-  if (param1.includes("Live") && param2.includes("data_camlevel")) {
-    console.log("Conditions matched, entering if block");
-    // Proceed with your logic here
-  } else {
-    console.log("Conditions did not match");
-  }
+  // // Update your `if` statement
+  // if (param1.includes("Live") && param2.includes("data_camlevel")) {
+  //   console.log("Conditions matched, entering if block");
+  //   // Proceed with your logic here
+  // } else {
+  //   console.log("Conditions did not match");
+  // }
 
 
   // find the filepath to use in the case that we're looking for the live, dot_camlevel dir
@@ -160,6 +179,8 @@ app.get('/data', (req, res) => {
     }
     console.log('first matching file')
     console.log(firstMatchingFile)
+    console.log("check here forecast")
+    console.log(path.join(dirPath, firstMatchingFile));
     filePath = path.join(dirPath, firstMatchingFile);
   } else if (param1.includes("Forecast")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
@@ -167,6 +188,9 @@ app.get('/data', (req, res) => {
     // const dirPath = path.join(__dirname, dirName); 
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
     // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+    console.log("inside forecast")
+    console.log(dirPath)
+    console.log(param3)
     const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
     if (!firstMatchingFile) {
         return res.status(404).json({ message: 'No matching files found' });
@@ -180,6 +204,7 @@ app.get('/data', (req, res) => {
     // const dirPath = path.join(__dirname, dirName); 
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
     // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+    console.log("inside historical")
     const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
     if (!firstMatchingFile) {
         return res.status(404).json({ message: 'No matching files found' });
