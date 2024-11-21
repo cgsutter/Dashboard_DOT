@@ -11,6 +11,7 @@ import {prepListForecastOptions} from './timing_helper.js';
 import {prepFileString_fcst} from './timing_helper.js';
 import {datestring_tofilenamestring} from './timing_helper.js';
 import {prepDateObject_fcst} from './timing_helper.js';
+import {prevday_nextday} from './timing_helper.js';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";  // 
 
@@ -40,6 +41,9 @@ const Map = (props) => {
   const [flagFCST, setFlagFCST] = useState(false);
   const [flagHist, setFlagHist] = useState(false);
   // Need to set initial values so that the map loads correctly under the initialization of Live. By default in React, these initial state variables are set sequentially. We need them to be dynamic based on the time that the site is loaded, but they still need initial values. Without having in initial values (for example, if we wait for a useEffect to load based on the setDate state), the initial site load won't load. So we need the initial values to be functions (dynamic) of the current time, we need the initialized states to depend on selectedDate, as done below, and it works sequentially as needed. Note that we *also* have these setState functions evaluated in a useEffect to account for the case that the user clicks Forecast or Historical, and then *goes back* to Live.
+  const [selectedDateCamET, setSelectedDateCamET] = useState(new Date());  // here
+  const [selectedDateCam, setSelectedDateCam] = useState(convertToGMT(selectedDateCamET));
+  const [adjacentDaysLive, setAdjacentDaysLive]= useState(prevday_nextday(selectedDateCam));
   const [selectedDateET, setSelectedDateET] = useState(new Date());  // here
   const [selectedDate, setSelectedDate] = useState(convertToGMT(selectedDateET));  // Default to the current date and time bc default loading selection, setContext, is Live
   const [roundedToHr, setRoundedToHr] = useState(roundTimeToHour(selectedDate));
@@ -54,6 +58,7 @@ const Map = (props) => {
   const [fileForecast, setFileForecast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
   const [selectedPastET, setSelectedPastET] = useState(''); // here
   const [selectedPast, setSelectedPast] = useState(''); // user selected
+  const [adjacentDays, setAdjacentDays] = useState([]);
   const [filePast, setFilePast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
 
 
@@ -131,6 +136,9 @@ const Map = (props) => {
       // set the subdir for the API to search for the most recent file for camlevel
       // setSubdir("data_camlevel");
       // set the current datetime for the API to search for the best hrrr-level data. Note that upon loading, the default will use the current time, but need this in here in case the user switches from live, to historical, and then back to live (need to reset it to current time)
+      setSelectedDateCamET(new Date());
+      setSelectedDateCam(convertToGMT(selectedDateCamET));
+      setAdjacentDaysLive(prevday_nextday(selectedDateCam));
       console.log("break 1 A");
       // const now = new Date(); 
       // console.log(now); 
@@ -142,8 +150,8 @@ const Map = (props) => {
       setShowFCST(true);
       console.log("break 1 C");
       setFlagLive(true);
-      setFlagFCST(false);
-      setFlagHist(false);
+      // setFlagFCST(false);
+      // setFlagHist(false);
       console.log("break 1 D");
       setRoundedToHr(roundTimeToHour(selectedDate));
       // console.log(roundedToHr);
@@ -202,6 +210,11 @@ const Map = (props) => {
     console.log("selectedDateET:")
     console.log(selectedDateET)
   }, [selectedDateET]);
+
+  useEffect (() => {
+    console.log("TYPE OF SELECTED DATE")
+    console.log(typeof selectedDate)
+  }, [selectedDate]);
 
   useEffect (() => {
     console.log("selectedDate")
@@ -393,12 +406,35 @@ const Map = (props) => {
     setSelectedPastET(date);
   };
 
+  // prep the other dir paths for previous and next days in case edge case of camlevel date (like if request is for midnight on 11/10, maybe the closest file is 11:58 on 11/9)
+  useEffect(() => {
+    if (flagHist === true) { 
+      setAdjacentDays(prevday_nextday(selectedPast))
+    }
+  }, [selectedPast]) ;
+
+  useEffect(() => {
+    if (flagHist === true) { 
+      setAdjacentDaysLive(prevday_nextday(selectedDateCam));
+    }
+  }, [selectedDateCam]) ;
+
+  // check that it worked
+  useEffect(() => {
+    if (flagHist === true) { 
+      console.log("adjacent days")
+      console.log(adjacentDays)
+    }
+  }, [adjacentDays]) ;
+
   useEffect(() => {
     if (flagHist === true) { 
       console.log("selectedPats is updated")
       console.log(selectedPast)
     }
   }, [selectedPast]) ;
+
+
 
   // Handle dropdown for forecast
   const handleForecasetChange = (e) => {
@@ -413,7 +449,7 @@ const Map = (props) => {
   // Second: Load in the data
 
   // Define this function that, when called on (see useEffect later) will load the corresponding data based on user selection
-  const fetchData = async (inputcontext, inputlevel, inputfilestring) => {
+  const fetchData = async (inputcontext, inputlevel, inputfilestring, inputdirsadjacent, inputcamdate) => {
     try {
       // console.log("beginning fetch")
       // // console.log(dictinput)
@@ -423,7 +459,7 @@ const Map = (props) => {
       // // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
       // console.log("fetch query for API")
       // console.log(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`)
-      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`, {
+      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}&param4=${inputdirsadjacent}&param5=${inputcamdate}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
         headers: {
@@ -468,125 +504,313 @@ const Map = (props) => {
   // };
 
   // clean up eventually bc repetitive code in here and the Forecast map and the Historical map after needed to split up dependecies into multiple pieces
+  // useEffect(() => {
+  //   console.log("complete resturcture");
+  //   // const dataloaded_camlevel = await ;
+  //   setData(fetchData(selectedContext, "data_camlevel", "irrelev.js" ,['2024/11/20', '2024/11/21', '2024/11/22'],selectedDateCam));
+  //   // const dataloaded_hrrrlevel = await ; //"data_hrrrlevel"
+  //   setFCSTData(fetchData(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR, [], ''));
+  // }, []); // dont put flagLive in here! Bc it will render before any of the other stuff does. 
   useEffect(() => {
-    // load camlevel data
-    // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
-
-    const runFetch = async (inputcontext, inputlevel, inputfilestring) => {
+    console.log("upon initial render");
+    console.log(adjacentDaysLive);
+    console.log(selectedDateCam);
+    const fetchDataAsync_init = async () => {
       try {
-        // console.log('Component rendered, fetch should occur');
-        // console.log(subdir)
-        // // console.log('selectedDictionary:', selectedDictionary);
-  
-        const dataloaded_camlevel = await fetchData(inputcontext, inputlevel, inputfilestring);
+        // Fetch and set camlevel data
+        const dataloaded_camlevel = await fetchData(
+          selectedContext, 
+          "data_camlevel",  //"data_camlevel/allonedir", 
+          "irrelev.js", 
+          adjacentDaysLive, 
+          selectedDateCam
+        );
         setData(dataloaded_camlevel);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-
-
-    const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring) => {
-      try {
-        // console.log('Component rendered, fetch should occur');
-        // console.log(subdir)
-        // // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring); //"data_hrrrlevel"
+        // Fetch and set hrrrlevel data
+        const dataloaded_hrrrlevel = await fetchData(
+          selectedContext, 
+          "data_hrrrlevel", 
+          fileLiveOrHistHRRR, 
+          [], 
+          ''
+        );
         setFCSTData(dataloaded_hrrrlevel);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       }
     };
 
-    // if showing current conditions, load cam level data and/or hrrr level data depending on user input
+    // Call the async function
+    fetchDataAsync_init();
+  }, []);
+
+  // comment out to start w cam
+  useEffect(() => {
     if (selectedContext == "Live") {
-      // console.log("entering live?????")
-      if (showdots){
-        // const cams_dir = "data_camlevel";
-        // console.log("TRY TO PRINT IN LOADING USEEFFECT")
-        // setDirLevel("data_camlevel")
-        // // console.log(selectedContext, dirLevel)
-        runFetch(selectedContext, "data_camlevel", "irrelev.js");
-        // console.log("print data inside load if")
-        // console.log(data)
-
-      }
-      if (showFCST){
-        // console.log("entering show fcst???")
-        // setDirLevel("data_hrrrlevel")
-        // console.log(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
-        runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
-
-      }
+      console.log("upon context change-LIVE");
+      const fetchDataAsync_live = async () => {
+        try {
+          // Fetch and set camlevel data
+          const dataloaded_camlevel = await fetchData(
+            selectedContext, 
+            "data_camlevel",  //"data_camlevel/allonedir", 
+            "irrelev.js", 
+            adjacentDaysLive, 
+            selectedDateCam
+          );
+          setData(dataloaded_camlevel);
+    
+          // Fetch and set hrrrlevel data
+          const dataloaded_hrrrlevel = await fetchData(
+            selectedContext, 
+            "data_hrrrlevel", 
+            fileLiveOrHistHRRR, 
+            [], 
+            ''
+          );
+          setFCSTData(dataloaded_hrrrlevel);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      };
+  
+      // Call the async function
+      fetchDataAsync_live();
     }
-  }, [showFCST, showdots]); // dont put flagLive in here! Bc it will render before any of the other stuff does. 
+  }, [selectedContext]);
+
 
   useEffect(() => {
-    // load camlevel data
-    // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
-
-
-    const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring) => {
-      try {
-        // console.log('Component rendered, fetch should occur');
-        // console.log(subdir)
-        // // console.log('selectedDictionary:', selectedDictionary);
-  
-        const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring); //"data_hrrrlevel"
-        setFCSTData(dataloaded_hrrrlevel);
-      } catch (error) {
-        console.error('Error fetching data:', error);
+    if (selectedContext == "Forecast") {
+      console.log("upon context change-FCST");
+      console.log(fileForecast);
+      const fetchDataAsync_fcst = async () => {
+        try {
+          // dont need cam level at all for fcst
+    
+          // Fetch and set hrrrlevel data
+          const dataloaded_hrrrlevel = await fetchData(
+            selectedContext, 
+            "data_hrrrlevel", 
+            fileForecast, 
+            [], 
+            ''
+          );
+          setFCSTData(dataloaded_hrrrlevel);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
       }
-    };
-
-    // if showing current conditions, load cam level data and/or hrrr level data depending on user input
-    if (selectedContext == "Forecast"){
-      console.log("entered forecast")
-      console.log(selectedContext)
-      console.log(fileForecast)
-      runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileForecast)
-      // to test out issue plug in a fileForecast string there
+      // Call the async function
+      fetchDataAsync_fcst();
     }
-  }, [fileForecast]);
+  }, [fileForecast]); // render if selectedContext changes (specifically if it changes to Forecast, which is taken care of via the if statement inside) and also changes if fileForecast is updated, which is needed if user selectts a different date to see
+
 
   useEffect(() => {
-    // load camlevel data
-    // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
-
-    const runFetch = async (inputcontext, inputlevel, inputfilestring) => {
-      try {
-        // console.log('Component rendered, fetch should occur');
-        // console.log(subdir)
-        // // console.log('selectedDictionary:', selectedDictionary);
-  
-        const dataloaded_camlevel = await fetchData(inputcontext, inputlevel, inputfilestring);
-        setData(dataloaded_camlevel);
-      } catch (error) {
-        console.error('Error fetching data:', error);
+    if (selectedContext == "Historical") {
+      console.log("upon context change-HIST");
+      const fetchDataAsync_hist = async () => {
+        try {
+          // Fetch and set camlevel data
+          const dataloaded_camlevel = await fetchData(
+            selectedContext, 
+            "data_camlevel", 
+            "irrelev.js", 
+            adjacentDays, 
+            selectedPast
+          );
+          setData(dataloaded_camlevel);
+    
+          // Fetch and set hrrrlevel data
+          const dataloaded_hrrrlevel = await fetchData(
+            selectedContext, 
+            "data_hrrrlevel", 
+            filePast, 
+            [], 
+            ''
+          );
+          setFCSTData(dataloaded_hrrrlevel);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
       }
+      // Call the async function
+      fetchDataAsync_hist();
     };
-
-
-    const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring) => {
-      try {
-        // console.log('Component rendered, fetch should occur');
-        // console.log(subdir)
-        // // console.log('selectedDictionary:', selectedDictionary);
   
-        const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring); //"data_hrrrlevel"
-        setFCSTData(dataloaded_hrrrlevel);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
 
-    // if showing current conditions, load cam level data and/or hrrr level data depending on user input
-    if (selectedContext == "Historical"){
-      // console.log("entered forecast")
-      runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", filePast)
-  }
   }, [filePast]);
+
+  // comment out to start w cam
+
+
+  useEffect(() => {
+    console.log("data")
+    console.log(data)
+  }, [data]) ;
+
+  useEffect(() => {
+    console.log("FCSTdata")
+    console.log(FCSTdata)
+  }, [FCSTdata]) ;
+
+  // remove with resturcture
+  // useEffect(() => {
+  //   console.log("entering first useeffect for upon load")
+
+  //   // load camlevel data
+  //   // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
+
+  //   const runFetch = async (inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate) => {
+  //     try {
+  //       // console.log('Component rendered, fetch should occur');
+  //       // console.log(subdir)
+  //       // // console.log('selectedDictionary:', selectedDictionary);
+  
+  //       const dataloaded_camlevel = await fetchData(inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate);
+  //       setData(dataloaded_camlevel);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   };
+
+
+  //   const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate) => {
+  //     try {
+  //       // console.log('Component rendered, fetch should occur');
+  //       // console.log(subdir)
+  //       // // console.log('selectedDictionary:', selectedDictionary);
+  
+  //       const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring, inputdirsadjacent, inputcamdate); //"data_hrrrlevel"
+  //       setFCSTData(dataloaded_hrrrlevel);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   };
+
+  //   // if showing current conditions, load cam level data and/or hrrr level data depending on user input
+  //   if (selectedContext == "Live") {
+  //     console.log("entering live")
+  //     console.log(selectedContext, )
+  //     // console.log("entering live?????")
+  //     if (showdots){
+  //       // const cams_dir = "data_camlevel";
+  //       // console.log("TRY TO PRINT IN LOADING USEEFFECT")
+  //       // setDirLevel("data_camlevel")
+  //       // // console.log(selectedContext, dirLevel)
+  //       runFetch(selectedContext, "data_camlevel", "irrelev.js" ,['2024/11/20', '2024/11/21', '2024/11/22'],selectedDateCam );
+  //       // hardcode to chec for now before getting useeffect dependencies to work... 
+  //       // console.log("print data inside load if")
+  //       // console.log(data)
+
+  //     }
+  //     if (showFCST){
+  //       // console.log("entering show fcst???")
+  //       // setDirLevel("data_hrrrlevel")
+  //       // console.log(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
+  //       runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR, [], '')
+
+  //     }
+  //   }
+  // }, []); // dont put flagLive in here! Bc it will render before any of the other stuff does. 
+
+
+  // // comment out these fcst or hist useeffects to debug
+  // useEffect(() => {
+  //   console.log("entering second useeffect for forecast")
+
+  //   // load camlevel data
+  //   // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
+
+
+  //   const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring, inputdirsadjacent, inputcamdate) => {
+  //     try {
+  //       // console.log('Component rendered, fetch should occur');
+  //       // console.log(subdir)
+  //       // // console.log('selectedDictionary:', selectedDictionary);
+  
+  //       const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate); //"data_hrrrlevel"
+  //       setFCSTData(dataloaded_hrrrlevel);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   };
+
+  //   // if showing current conditions, load cam level data and/or hrrr level data depending on user input
+  //   if (selectedContext == "Forecast"){
+  //     console.log("entered forecast")
+  //     console.log(selectedContext)
+  //     console.log(fileForecast)
+  //     runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", fileForecast, [], '')
+  //     // to test out issue plug in a fileForecast string there
+  //   }
+  // }, [flagFCST]); //fileForecast
+
+
+  // useEffect(() => {
+  //   console.log("entering third useeffect for historicl")
+  //   console.log(selectContext)
+  //   console.log(filePast)
+
+  //   // load camlevel data
+  //   // note that the runFetch async function is necessary *inside* this useeffect because we can't use await inside the ueseffect directly (due to synchronous requirement of the useffect hook) but yet we have to wait (async) for the data to load before trying to complete the useffect (o/w it may move on without having data loaded)
+
+  //   const runFetch = async (inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate) => {
+  //     try {
+  //       // console.log('Component rendered, fetch should occur');
+  //       // console.log(subdir)
+  //       // // console.log('selectedDictionary:', selectedDictionary);
+  
+  //       const dataloaded_camlevel = await fetchData(inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate);
+  //       setData(dataloaded_camlevel);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   };
+
+
+  //   const runFetch_hrrrlevel = async (inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate) => {
+  //     try {
+  //       // console.log('Component rendered, fetch should occur');
+  //       // console.log(subdir)
+  //       // // console.log('selectedDictionary:', selectedDictionary);
+  
+  //       const dataloaded_hrrrlevel = await fetchData(inputcontext, inputlevel, inputfilestring,inputdirsadjacent, inputcamdate); //"data_hrrrlevel"
+  //       setFCSTData(dataloaded_hrrrlevel);
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //     }
+  //   };
+
+  //   // if showing current conditions, load cam level data and/or hrrr level data depending on user input
+  //   if (selectedContext == "Historical"){
+  //     // console.log("entered forecast")
+  // //     runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", filePast)
+  // // }
+
+  //     if (showdots){
+  //       // const cams_dir = "data_camlevel";
+  //       // console.log("TRY TO PRINT IN LOADING USEEFFECT")
+  //       // setDirLevel("data_camlevel")
+  //       // // console.log(selectedContext, dirLevel)
+  //       runFetch(selectedContext, "data_camlevel", "irrelev.js", adjacentDays,selectedPast);
+  //       // console.log("print data inside load if")
+  //       // console.log(data)
+
+  //     }
+  //     if (showFCST){
+  //       // console.log("entering show fcst???")
+  //       // setDirLevel("data_hrrrlevel")
+  //       // console.log(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR)
+  //       runFetch_hrrrlevel(selectedContext, "data_hrrrlevel", filePast, [],'' )
+
+  //     }
+  //   }
+  // }, [flagHist]); //filePast
+
+  // end comment out 11/21
 
 
   // be careful with lots of dependencies; what is happening is that if ONE changes, it will re-render the whole thing, which may not do what you want it to if that one thing needs to render some other things first. Had an issue with forecast here bc flagFCST changed so it re-rendered the whole thing but fileForecast wasnt rendered yet

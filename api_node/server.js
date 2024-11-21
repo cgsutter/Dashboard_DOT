@@ -34,21 +34,46 @@ function getMostRecentFile(dirPath) {
   return files.length > 0 ? files[0].file : null;
 }
 
-// function listFilesContainingSubstrings(directoryPath, substring1, substring2) {
-//   try {
-//       // Read all files in the directory
-//       const files = fs.readdirSync(directoryPath);
+// for historical, find the file that has closest modification time to the requested user date time, and consider looking between 3 directories
+function findClosestFile(parentDir, dirs, targetDate) {
+  console.log("inside the findClosestFile function BEGIN")
+  console.log("target date?/")
+  console.log(targetDate)
+  console.log(typeof targetDate)
+  // const targetDateStr = "Thu Nov 21 2024 15:58:34 GMT-0500 (Eastern Standard Time)";
+  const targetDateUTC = new Date(
+    targetDate.replace("GMT-0500 (Eastern Standard Time)", "+0000")
+  );
+  console.log(targetDateUTC)
+  console.log(typeof targetDateUTC)
 
-//       // Filter files containing both substring1 and substring2
-//       const filteredFiles = files.filter(file => file.includes(substring1) && file.includes(substring2));
+  let closestFile = null;
+  let closestDiff = Infinity;
 
-//       console.log("Matching files:", filteredFiles);
-//       return filteredFiles;
-//   } catch (error) {
-//       console.error("Error accessing directory:", error);
-//       return [];
-//   }
-// }
+  dirs.forEach((directory) => {
+      const fullPath = path.join(parentDir, directory);
+      console.log(fullPath)
+      fs.readdirSync(fullPath).forEach((filename) => {
+          const filePath = path.join(fullPath, filename);
+          const stats = fs.statSync(filePath);
+
+          const fileDate = stats.mtime;
+          const diff = Math.abs(targetDateUTC - fileDate);
+
+          if (diff < closestDiff) {
+              closestDiff = diff;
+              closestFile = filePath;
+          }
+      });
+  });
+  console.log("END Inside closest file is:")
+
+  console.log(closestFile)
+
+  return closestFile;
+}
+
+
 
 // alphabetically take the first file with the Valid Time subsrting, so it prioritizes the fcst hour 2 (which is the earliest it would be). This also works for the 1) historical where we would also want to be looking at fcst hour 2, and 2) for forecast after user selects which forecast hour to see, where 
 function findFirstFileWithSubstring(directory, searchString) {
@@ -107,27 +132,35 @@ app.get('/data', (req, res) => {
   const param1 = decodeURIComponent(req.query.param1 || "").trim();
   const param2 = decodeURIComponent(req.query.param2 || "").trim();
   const param3 = decodeURIComponent(req.query.param3 || "").trim();
+  const param4 = decodeURIComponent(req.query.param4 || "").trim();
+  const param5 = decodeURIComponent(req.query.param5 || "").trim();
 
-  console.log(param1, param2, param3);
-  console.log("lengths")
-  console.log(param1.length);
-  console.log(param2.length);
+  console.log(param1, param2, param3, param4, param5);
+  // console.log("lengths")
+  // console.log(param1.length);
+  // console.log(param2.length);
+  // console.log("check param 1")
+  // console.log(param1)
+  // console.log("check param 2")
+  // console.log(param2)
+  // console.log("check param 3")
+  // console.log(param3)
+  // // param 4 and 5 only relevant for historic look at cam level? maybe back to live view too
+  // console.log("check param 4")
+  // console.log(param4)
+  // console.log(typeof param4)
 
+  const dateList = param4.split(',');
+  // console.log(dateList)
+  // console.log(typeof dateList)
 
-
-  console.log("check param 1")
-  console.log(param1)
-
-  console.log("check param 2")
-  console.log(param2)
-
-  console.log("check param 3")
-  console.log(param3)
+  // console.log("check param 5")
+  // console.log(param5)
 
   const dirPath = path.join(__dirname, param2); 
 
-  console.log("some checks")
-  console.log(dirPath)
+  // console.log("some checks")
+  // console.log(dirPath)
   // findFirstFileWithSubstring(dirPath, "V20241121_01")
 
   let filePath;
@@ -158,21 +191,37 @@ app.get('/data', (req, res) => {
     // const dirName = "data_camlevel";
     // console.log('dirName:', dirName);
     // const dirPath = path.join(__dirname, param2); 
+
+    // intermediate to see if getting the function stuff working
     console.log("entering first if")
-    const mostRecentFile = getMostRecentFile(dirPath);
-    if (!mostRecentFile) {
-      return res.status(404).json({ message: 'No files found' });
-    }
-    console.log('most recent is')
-    console.log(mostRecentFile)
-    filePath = path.join(dirPath, mostRecentFile);
+    const do_try = findClosestFile(dirPath, dateList, param5); //"/home/csutter/dashboard/api_node/data_camlevel/"
+    console.log("printint result of fn below!!")
+    console.log(do_try)
+    console.log("done first if AFTER RUN FN")
+
+
+    // old way (but with data_camlevel/allonedir)
+    // const mostRecentFile = getMostRecentFile(dirPath);
+    // if (!mostRecentFile) {
+    //   return res.status(404).json({ message: 'No files found' });
+    // }
+    // console.log('most recent is')
+    // console.log(mostRecentFile)
+    // filePath = path.join(dirPath, mostRecentFile);
+
+    filePath = do_try;
     console.log("setting filepath as ")
     console.log(filePath)
+    console.log("done first if")
+
+
+
   } else if (param1.includes("Live") && param2.includes("data_hrrrlevel")) {
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
     // const dirName = "data_camlevel";
     // console.log('dirName:', dirName);
     // const dirPath = path.join(__dirname, param2); 
+    console.log("entering second if")
     const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
     if (!firstMatchingFile) {
       return res.status(404).json({ message: 'No files found' });
@@ -182,12 +231,14 @@ app.get('/data', (req, res) => {
     console.log("check here forecast")
     console.log(path.join(dirPath, firstMatchingFile));
     filePath = path.join(dirPath, firstMatchingFile);
+    console.log("done second if else")
   } else if (param1.includes("Forecast")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
     // console.log('dirName:', dirName);
     // const dirPath = path.join(__dirname, dirName); 
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
     // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+    console.log("entering third if")
     console.log("inside forecast")
     console.log(dirPath)
     console.log(param3)
@@ -198,12 +249,24 @@ app.get('/data', (req, res) => {
     console.log('First matching file is:');
     console.log(firstMatchingFile);
     filePath = path.join(dirPath, firstMatchingFile);
-  } else if (param1.includes("Historical")) { // Additional check for the substring
+    console.log("done third if else")
+
+  } else if (param1.includes("Historical") && param2.includes("data_camlevel")) {
+    console.log("entering fourth if else")
+    const do_try2 = findClosestFile(dirPath, dateList, param5);
+    filePath = do_try2;
+    console.log("setting filepath as ")
+    console.log(filePath)
+    console.log("done fourth if else")
+
+
+  } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
     // console.log('dirName:', dirName);
     // const dirPath = path.join(__dirname, dirName); 
     // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
     // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+    console.log("entering 5fth if")
     console.log("inside historical")
     const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
     if (!firstMatchingFile) {
@@ -212,6 +275,8 @@ app.get('/data', (req, res) => {
     console.log('First matching file is:');
     console.log(firstMatchingFile);
     filePath = path.join(dirPath, firstMatchingFile);
+    console.log("done fifth if else")
+
   } else { // Fallback for other cases
     filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
   }

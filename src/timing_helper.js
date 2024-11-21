@@ -248,6 +248,28 @@ function prepFileString(inputHour) {
 export {prepFileString};
 
 
+function prevday_nextday(inputDate) {
+    // Parse input date
+    const date = new Date(inputDate);
+
+    // Calculate surrounding dates
+    const aheadDate = new Date(date.getTime() + 24 * 60 * 60 * 1000);
+    const behindDate = new Date(date.getTime() - 24 * 60 * 60 * 1000);
+
+    // Format dates as YYYY/MM/DD
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}/${month}/${day}`;
+    };
+
+    // Return formatted date range
+    return [formatDate(behindDate), formatDate(date), formatDate(aheadDate)];
+}
+export {prevday_nextday};
+
+
 // export default prepFileString;
 
 // export function offsetHours
