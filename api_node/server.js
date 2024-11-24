@@ -51,20 +51,25 @@ function findClosestFile(parentDir, dirs, targetDate) {
   let closestDiff = Infinity;
 
   dirs.forEach((directory) => {
-      const fullPath = path.join(parentDir, directory);
-      console.log(fullPath)
+    const fullPath = path.join(parentDir, directory);
+    console.log(fullPath)
+
+    if (fs.existsSync(fullPath)) {
       fs.readdirSync(fullPath).forEach((filename) => {
-          const filePath = path.join(fullPath, filename);
-          const stats = fs.statSync(filePath);
+        const filePath = path.join(fullPath, filename);
+        const stats = fs.statSync(filePath);
 
-          const fileDate = stats.mtime;
-          const diff = Math.abs(targetDateUTC - fileDate);
+        const fileDate = stats.mtime;
+        const diff = Math.abs(targetDateUTC - fileDate);
 
-          if (diff < closestDiff) {
-              closestDiff = diff;
-              closestFile = filePath;
-          }
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closestFile = filePath;
+        }
       });
+    } else {
+      console.log(`Directory not found: ${fullPath}. Skipping...`);
+    }
   });
   console.log("END Inside closest file is:")
 
