@@ -162,7 +162,7 @@ app.get('/data', (req, res) => {
   // console.log("check param 5")
   // console.log(param5)
 
-  const dirPath = path.join(__dirname, param2); 
+  const dirPath = path.join("/home/csutter/dashboard/data", param2); 
 
   // console.log("some checks")
   // console.log(dirPath)
