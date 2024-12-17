@@ -1108,7 +1108,7 @@ const Map = (props) => {
               checked={conditions.poor_viz}
               onChange={handleConditionChange}
             />
-            <span style={{ backgroundColor: 'lightgray', color: 'black', padding: '3px', borderRadius: '5px' }}>
+            <span style={{ backgroundColor: 'purple', color: 'white', padding: '3px', borderRadius: '5px' }}>
               Poor visibility
             </span>
           </li>
@@ -1120,7 +1120,7 @@ const Map = (props) => {
                 checked={conditions.obs}
                 onChange={handleConditionChange}
               />
-              <span style={{ backgroundColor: 'black', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
+              <span style={{ backgroundColor: 'darkblue', color: 'lightgray', padding: '3px', borderRadius: '5px' }}>
                 Obstructed camera
               </span>
             </li>
