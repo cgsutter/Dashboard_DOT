@@ -820,15 +820,23 @@ const Map = (props) => {
           source: 'points',
           paint: {
             'circle-color': ['get', 'color'],
-            'circle-radius': 30,
-            'circle-opacity': [
-              'interpolate', 
+            'circle-radius': [
+              'interpolate',
               ['linear'],
               ['zoom'],
-              7, 0.025,
-              12,.9
+              7, 10,   // Smaller radius at lower zooms
+              12, 70  // Larger radius at higher zooms
             ],
-            'circle-blur': 1,
+            'circle-opacity': [
+              'interpolate',
+              ['linear'],
+              ['zoom'],
+              7, 0.08,  // Lower opacity at smaller zooms to reduce overlap darkness
+              9, .1,
+              10, 0.2, // Gradual increase in opacity for visibility
+              12, 0.3  // Slightly reduce opacity at higher zooms to balance density
+            ],
+            'circle-blur': 0.5, // Reduce blur for sharper edges
           },
         });
       }
