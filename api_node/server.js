@@ -79,6 +79,84 @@ function findClosestFile(parentDir, dirs, targetDate) {
   return closestFile;
 }
 
+// For forecast, list times fro the options for user to select. But if the time doesn't exist (HRRR lag, file missed, etc), we can point the user to the next closest time. This function and the next one does this. This first function lists 6 hours preceeding and proceeding the requested time. The second function checks which of those files exist. In both functions, order is preserved so that still, the user selected time is prioritized, and from there we move to +/-1 preceeding or prceeding hours, then +/- 2
+function getFileAccountingForUnavail(targetFileStr) {
+    // Parse the input file to extract the date and hour
+    const year = parseInt(targetFileStr.substring(1, 5), 10);
+    const month = parseInt(targetFileStr.substring(5, 7), 10) - 1; // Month is zero-based in JavaScript
+    const day = parseInt(targetFileStr.substring(7, 9), 10);
+    const hour = parseInt(targetFileStr.substring(10, 12), 10);
+
+    const targetDate = new Date(Date.UTC(year, month, day, hour));
+
+    // Generate nearby timestamps (within 6 hours before and after)
+    const nearbyFiles = [];
+    for (let offset = -6; offset <= 6; offset++) {
+        const nearbyDate = new Date(targetDate);
+        nearbyDate.setUTCHours(targetDate.getUTCHours() + offset);
+
+        // Format the nearby timestamp into the required file format
+        const formattedYear = nearbyDate.getUTCFullYear();
+        const formattedMonth = String(nearbyDate.getUTCMonth() + 1).padStart(2, '0'); // Month is zero-based
+        const formattedDay = String(nearbyDate.getUTCDate()).padStart(2, '0');
+        const formattedHour = String(nearbyDate.getUTCHours()).padStart(2, '0');
+        const nearbyFile = `V${formattedYear}${formattedMonth}${formattedDay}_${formattedHour}`;
+
+        // Skip adding the target file to the nearby list again
+        if (offset === 0) continue;
+
+        nearbyFiles.push({
+            file: nearbyFile,
+            priority: Math.abs(offset) // Closer times have lower priority
+        });
+    }
+
+    // Sort by priority (closer times first)
+    nearbyFiles.sort((a, b) => a.priority - b.priority);
+
+    const filesinorder = [targetFileStr, ...nearbyFiles.map(entry => entry.file)];
+    console.log()
+    // Add the target file as the first choice
+    return filesinorder;
+}
+
+
+function seeIfFilesInListExist(baseDir, fileList) {
+  // Extract unique dates from fileList
+  const uniqueDates = [...new Set(fileList.map(file => {
+    const year = file.substring(1, 5);
+    const month = file.substring(5, 7);
+    const day = file.substring(7, 9);
+    return `/${year}/${month}/${day}`;
+  }))];
+
+  const matchingFiles = [];
+
+  // Iterate over fileList to retain the order
+  fileList.forEach(file => {
+    const year = file.substring(1, 5);
+    const month = file.substring(5, 7);
+    const day = file.substring(7, 9);
+    const datePath = `/${year}/${month}/${day}`;
+    const dirPath = path.join(baseDir, datePath);
+
+    // Find matching files for each entry in fileList
+    if (fs.existsSync(dirPath)) {
+      const filesInDir = fs.readdirSync(dirPath);
+      const matches = filesInDir.filter(f => f.includes(file));
+
+      // Sort the matched files alphabetically
+      matches.sort();
+
+      // Add the sorted matches to the final list
+      matchingFiles.push(...matches.map(matchedFile => path.join(datePath, matchedFile)));
+    }
+  });
+
+  return matchingFiles;
+}
+
+
 
 
 // alphabetically take the first file with the Valid Time subsrting, so it prioritizes the fcst hour 2 (which is the earliest it would be). This also works for the 1) historical where we would also want to be looking at fcst hour 2, and 2) for forecast after user selects which forecast hour to see, where 
@@ -248,13 +326,25 @@ app.get('/dot-api', (req, res) => {
     console.log("inside forecast")
     console.log(dirPath)
     console.log(param3)
-    const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
-    if (!firstMatchingFile) {
-        return res.status(404).json({ message: 'No matching files found' });
-    }
-    console.log('First matching file is:');
-    console.log(firstMatchingFile);
-    filePath = path.join(dirPath, firstMatchingFile);
+    const filesToConsider = getFileAccountingForUnavail(param3) // added 12/18
+    console.log("new function")
+    console.log(filesToConsider)
+    const filesThatExist = seeIfFilesInListExist('/home/csutter/dashboard/data/data_hrrrlevel', filesToConsider)
+    console.log("function 2")
+    console.log(filesThatExist)
+    const filetoload = filesThatExist[0]
+    console.log(filetoload)
+    // dont need this any more bc finding first file with new methods above
+    // const firstMatchingFile = findFirstFileWithSubstring(dirPath, filetoload);//change last one to param3 and comment out above line 
+    // if (!firstMatchingFile) {
+    //     return res.status(404).json({ message: 'No matching files found' });
+    // }
+    // console.log("through here")
+    // console.log('First matching file is:');
+    // console.log(firstMatchingFile);
+    usedTimePrintUI = convertToEST(filetoload)
+    console.log(usedTimePrintUI)
+    filePath = path.join(dirPath, filetoload); //firstMatchingFile
     console.log("done third if else")
 
   } else if (param1.includes("Historical") && param2.includes("data_camlevel")) {
@@ -274,6 +364,7 @@ app.get('/dot-api', (req, res) => {
     // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
     console.log("entering 5fth if")
     console.log("inside historical")
+
     const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
     if (!firstMatchingFile) {
         return res.status(404).json({ message: 'No matching files found' });
@@ -315,7 +406,7 @@ app.get('/dot-api', (req, res) => {
         const dictionaryData = JSON.parse(data);
         res.set('Content-Type', 'application/json');
         console.log('through setting res type');
-        res.json({"data":dictionaryData,"time":formattedLastUpdated}); //formattedLastUpdated
+        res.json({"data":dictionaryData,"time":formattedLastUpdated}); //formattedLastUpdated updating 12/19 with usedTimePrintUI not formattedLastUpdated
       } catch (parseError) {
         console.error(parseError);
         res.status(500).json({ message: 'Failed to parse JSON' });
