@@ -132,7 +132,7 @@ function findFirstFileWithSubstring(directory, searchString) {
   //   return res.status(400).json({ message: 'File name is required' });
   // }
 
-app.get('/data', (req, res) => {
+app.get('/dot-api', (req, res) => {
   console.log('print beginning app get');
   // const { param1, param2, param3 } = req.query;
   const param1 = decodeURIComponent(req.query.param1 || "").trim();

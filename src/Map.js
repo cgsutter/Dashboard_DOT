@@ -461,7 +461,7 @@ const Map = (props) => {
       // // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
       // console.log("fetch query for API")
       // console.log(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`)
-      const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}&param4=${inputdirsadjacent}&param5=${inputcamdate}`, {
+      const response = await fetch(`https://xcitelab.org/dot-api?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}&param4=${inputdirsadjacent}&param5=${inputcamdate}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
         headers: {
