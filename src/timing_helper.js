@@ -62,20 +62,43 @@ export {datestring_tofilenamestring};
 
 
 // for forecast files, we want to look for valid times that are 1 hour, 2 hours, 4, hours, etc, into the future from the now (the moment when the user selects to see forecasts). So take the now time, and grab the forecast hours that the user can select from, dynamically based on when they loaded the forecast page. These will be sent back to the Map.js dropdown file 
+
+
+
+
+
 function prepListForecastOptions(inputHour) {
 
     // console.log("beginning prepListForecastOptions")
+
+    
+    
     const oneHour = 60 * 60 * 1000;
-    const twoHours = oneHour * 2;
-    const fourHours = oneHour * 4;
-    const eightHours = oneHour * 8;
+    const future2 = oneHour * 2;
+    const future3 = oneHour * 3;
+    const future4 = oneHour * 4;
+    const future5 = oneHour * 5;
+    const future6 = oneHour * 6;
+    const future8 = oneHour * 8;
+    const future12 = oneHour * 12;
+    const future18 = oneHour * 18;
+    const future24 = oneHour * 24;
 
     const hours = [
         new Date(inputHour.getTime() + oneHour),
-        new Date(inputHour.getTime() + twoHours),
-        new Date(inputHour.getTime() + fourHours),
-        new Date(inputHour.getTime() + eightHours)
+        new Date(inputHour.getTime() + future2),
+        new Date(inputHour.getTime() + future3),
+        new Date(inputHour.getTime() + future4),
+        new Date(inputHour.getTime() + future5),
+        new Date(inputHour.getTime() + future6),
+        new Date(inputHour.getTime() + future8),
+        new Date(inputHour.getTime() + future12),
+        new Date(inputHour.getTime() + future18),
+        new Date(inputHour.getTime() + future24)
     ];
+
+    // look for those files in directory
+    // if the files dont exist, remove them from the list so they dont populate
 
     console.log("got through here too")
     const listy = hours.map(date =>

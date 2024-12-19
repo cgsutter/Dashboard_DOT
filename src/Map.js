@@ -513,6 +513,8 @@ const Map = (props) => {
   //   // const dataloaded_hrrrlevel = await ; //"data_hrrrlevel"
   //   setFCSTData(fetchData(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR, [], ''));
   // }, []); // dont put flagLive in here! Bc it will render before any of the other stuff does. 
+
+
   useEffect(() => {
     console.log("upon initial render");
     console.log(adjacentDaysLive);
@@ -525,7 +527,8 @@ const Map = (props) => {
           "data_camlevel",  //"data_camlevel/allonedir", 
           "irrelev.js", 
           adjacentDaysLive, 
-          selectedDateCam
+          selectedDateCam,
+
         );
         setData(dataloaded_camlevel);
   
