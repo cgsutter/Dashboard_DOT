@@ -222,10 +222,15 @@ function findFirstFileWithSubstring(directory, searchString) {
   
       // Step 2: Create a Date object in UTC
       const utcDate = new Date(Date.UTC(year, month - 1, day, hour));
+      console.log(1);
+      console.log(utcDate);
   
       // Step 3: Convert the date to EST (UTC - 5)
       // Using Intl.DateTimeFormat to display the date in EST
       const estDate = new Date(utcDate.getTime() - (5 * 60 * 60 * 1000)); // UTC - 5 hours for EST
+      console.log(2);
+      console.log(estDate);
+      console.log(typeof estDate);
       
       // Step 4: Format it as a string
       const options = { 
@@ -239,8 +244,12 @@ function findFirstFileWithSubstring(directory, searchString) {
         hour12: false, 
         timeZone: 'America/New_York'
       };
+
+      console.log(3);
+      const time3 = estDate.toLocaleString('en-US', options);
+      console.log(time3)
       
-      return estDate.toLocaleString('en-US', options);
+      return estDate;
     }
   
     return null;  // Return null if the regex doesn't match
@@ -334,6 +343,9 @@ app.get('/data', (req, res) => {
     console.log("setting filepath as ")
     console.log(filePath)
     console.log("done first if")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
 
 
 
@@ -353,6 +365,9 @@ app.get('/data', (req, res) => {
     console.log(path.join(dirPath, firstMatchingFile));
     filePath = path.join(dirPath, firstMatchingFile);
     console.log("done second if else")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
   } else if (param1.includes("Forecast")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
     // console.log('dirName:', dirName);
@@ -379,6 +394,7 @@ app.get('/data', (req, res) => {
     // console.log("through here")
     // console.log('First matching file is:');
     // console.log(firstMatchingFile);
+    console.log("PRINTING TIME HERE")
     usedTimePrintUI = convertToEST(filetoload)
     console.log(usedTimePrintUI)
     filePath = path.join(dirPath, filetoload); //firstMatchingFile
@@ -391,6 +407,9 @@ app.get('/data', (req, res) => {
     console.log("setting filepath as ")
     console.log(filePath)
     console.log("done fourth if else")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
 
 
   } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { // Additional check for the substring
@@ -410,6 +429,9 @@ app.get('/data', (req, res) => {
     console.log(firstMatchingFile);
     filePath = path.join(dirPath, firstMatchingFile);
     console.log("done fifth if else")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
 
   } else { // Fallback for other cases
     filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";

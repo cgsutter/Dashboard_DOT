@@ -31,6 +31,7 @@ const Map = (props) => {
   const [selectedFCSTDictionary, setSelectedFCSTDictionary] = useState('FCST_current'); // equivalent of the above but for fcst data
   const [data, setData] = useState({}); // Based on the selectedDictionary, load the corresponding data using the API and store it in data
   const [FCSTdata, setFCSTData] = useState({}); // equivalent of the above but for fcst data
+
   const [mapInstance, setMapInstance] = useState(null);
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
@@ -402,6 +403,16 @@ const Map = (props) => {
     }
   }, [filePast]) ;
 
+  // hereee
+  useEffect(() => {
+    console.log("CAM UPDATE TIME RECEIVED:")
+    console.log(lastUpdateCam)
+  }, [lastUpdateCam]) ;
+
+  useEffect(() => {
+    console.log("FORECAST UPDATE TIME RECEIVED:")
+    console.log(lastUpdateFCST)
+  }, [lastUpdateFCST]) ;
 
   // Handle date change from DatePçicker
   const handleDateChange = (date) => {
@@ -488,7 +499,10 @@ const Map = (props) => {
       // setLastUpdateCam(apiResponse.time)
       // need to also return time
 
-      return apiResponse.data
+      return {
+        data: apiResponse.data, // Assuming `data` is part of the API response
+        time: apiResponse.time  // Assuming `time` is part of the API response
+      };
 
     } catch (error) {
       console.error('API Error:', error.message);
@@ -522,7 +536,7 @@ const Map = (props) => {
     const fetchDataAsync_init = async () => {
       try {
         // Fetch and set camlevel data
-        const dataloaded_camlevel = await fetchData(
+        const resultfetch = await fetchData(
           selectedContext, 
           "data_camlevel",  //"data_camlevel/allonedir", 
           "irrelev.js", 
@@ -530,17 +544,29 @@ const Map = (props) => {
           selectedDateCam,
 
         );
-        setData(dataloaded_camlevel);
+        // const dataloaded_camlevel = resultfetch.data;   // Access the data
+        // const hrrrUpdateTime = resultfetch.time;
+
+        setData(resultfetch.data);
+        setLastUpdateCam(resultfetchHRRR.time);
   
+        console.log("TIME CAM:")
+        console.log(lastUpdateCam)
         // Fetch and set hrrrlevel data
-        const dataloaded_hrrrlevel = await fetchData(
+        const resultfetchHRRR = await fetchData(
           selectedContext, 
           "data_hrrrlevel", 
           fileLiveOrHistHRRR, 
           [], 
           ''
         );
-        setFCSTData(dataloaded_hrrrlevel);
+        // const dataloaded_hrrrlevel = resultfetch.data;   // Access the data
+        // const hrrrUpdateTime = resultfetch.time;
+
+        setFCSTData(resultfetchHRRR.data);
+        setLastUpdateFCST(resultfetchHRRR.time);
+
+        console.log(lastUpdateFCST)
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -557,24 +583,35 @@ const Map = (props) => {
       const fetchDataAsync_live = async () => {
         try {
           // Fetch and set camlevel data
-          const dataloaded_camlevel = await fetchData(
+          const resultfetch2 = await fetchData(
             selectedContext, 
             "data_camlevel",  //"data_camlevel/allonedir", 
             "irrelev.js", 
             adjacentDaysLive, 
             selectedDateCam
           );
-          setData(dataloaded_camlevel);
+          // const dataloaded_camlevel = resultfetch.data;   // Access the data
+          // const hrrrUpdateTime = resultfetch.time;
+          setData(resultfetch2.data);
+          setLastUpdateCam(resultfetch2.time);
+
     
           // Fetch and set hrrrlevel data
-          const dataloaded_hrrrlevel = await fetchData(
+          const resultfetchHRRR2 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 
             fileLiveOrHistHRRR, 
             [], 
             ''
           );
-          setFCSTData(dataloaded_hrrrlevel);
+          // const dataloaded_hrrrlevel = resultfetch.data;   // Access the data
+          // const hrrrUpdateTime = resultfetch.time;
+  
+          setFCSTData(resultfetchHRRR2.data);
+          setLastUpdateFCST(resultfetchHRRR2.time);
+
+          console.log()
+
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -595,14 +632,15 @@ const Map = (props) => {
           // dont need cam level at all for fcst
     
           // Fetch and set hrrrlevel data
-          const dataloaded_hrrrlevel = await fetchData(
+          const resultfetchHRRR3 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 
             fileForecast, 
             [], 
             ''
           );
-          setFCSTData(dataloaded_hrrrlevel);
+          setFCSTData(resultfetchHRRR3.data);
+          setLastUpdateFCST(resultfetchHRRR3.time);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -619,24 +657,26 @@ const Map = (props) => {
       const fetchDataAsync_hist = async () => {
         try {
           // Fetch and set camlevel data
-          const dataloaded_camlevel = await fetchData(
+          const resultfetch4 = await fetchData(
             selectedContext, 
             "data_camlevel", 
             "irrelev.js", 
             adjacentDays, 
             selectedPast
           );
-          setData(dataloaded_camlevel);
+          setData(resultfetch4.data);
+          setLastUpdateCam(resultfetch4.time);
     
           // Fetch and set hrrrlevel data
-          const dataloaded_hrrrlevel = await fetchData(
+          const resultfetchHRRR4 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 
             filePast, 
             [], 
             ''
           );
-          setFCSTData(dataloaded_hrrrlevel);
+          setFCSTData(resultfetchHRRR4.data);
+          setLastUpdateFCST(resultfetchHRRR4.time);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -947,7 +987,7 @@ const Map = (props) => {
 
     <div style={{ marginTop: '0px', padding: '0px' }}>
       <h1 style={{ margin:'0',paddingBottom: '0px'}}>Road surface condition detection</h1>
-      <p style={{ fontSize: '18px', fontStyle: 'italic' ,margin: '0', paddingTop: '0px', paddingBottom: '20px'}} >Detected by machine-learning models</p>
+      <p style={{ fontSize: '18px', fontStyle: 'italic' ,margin: '0', paddingTop: '0px', paddingBottom: '20px'}} >Detected by machine-learning models (AI)</p>
       {/* <h2>{`${getTitle()}`}</h2> */}
       {/* <h3>{`Updated at:`}</h3> */}
       {/* <h3>{`Colo`}</h3> */}
@@ -1004,7 +1044,10 @@ const Map = (props) => {
               onChange={handleDateChange}
               showTimeSelect
               timeIntervals={60} // Time increments of 5 minutes
-              minDate={new Date('2024-01-01T00:00:00')} // Start date: Jan 1st, 2024
+              minDate={new Date('2024-12-19T00:00:00')} // Start date: Jan 1st, 2024
+              maxDate={new Date('2024-12-19T00:00:00')} //selectedDateET
+              minTime={new Date('2024-12-19T00:00:00').setHours(12, 0, 0)} // Earliest time: 8:00 AM
+              maxTime={new Date('2024-12-19T00:00:00').setHours(23, 0, 0)} // Latest time: 5:00 PM
               dateFormat="Pp" // Date format: MM/DD/YYYY HH:MM
               timeCaption="Time"
               timeFormat="HH:mm"
