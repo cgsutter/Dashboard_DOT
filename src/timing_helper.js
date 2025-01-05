@@ -44,8 +44,14 @@ function datestring_tofilenamestring(input) {
     const [datePart, timePart] = input.split(' ');
     // if empty split, 2024-11-18_11:00
 
+    // Extract the year, month, and day
+    const [year, month, day] = datePart.split('-');
+
+    // Format the date as yyyymmdd
+    const formattedDate = `${year}${month.padStart(2, '0')}${day.padStart(2, '0')}`;
+
     // // Remove dashes from the date
-    const formattedDate = datePart.replace(/-/g, '');
+    // const formattedDate = datePart.replace(/-/g, '');
 
     // // Extract the hour from the time
     const [hour, min] = String(timePart).split(':');
@@ -54,6 +60,17 @@ function datestring_tofilenamestring(input) {
 
     // Combine the date and hour in the desired format
     return `V${formattedDate}_${hour}`;
+
+// // Split the date and time
+// const [datePart, timePart] = input.split(' ');
+    
+
+
+// // Extract the hour from the time
+// const [hour, min] = String(timePart).split(':');
+
+// // Combine the date and hour in the desired format
+// return `V${formattedDate}_${hour}`;
 
 
   }

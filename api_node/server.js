@@ -255,6 +255,69 @@ function findFirstFileWithSubstring(directory, searchString) {
     return null;  // Return null if the regex doesn't match
   }
 
+  // new 12/20
+  function parseAndConvertToEST(inputString) {
+    // Define a function to convert UTC date to EST
+    function convertToEST(utcDate) {
+        const options = {
+            timeZone: 'America/New_York',
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        };
+        return new Intl.DateTimeFormat('en-US', options).format(utcDate);
+    }
+
+    let regexC = /C_(\d{4})(\d{2})(\d{2})_(\d{2})_(\d{2})/; // Regex for C_ type format
+    let regexF = /F_V(\d{4})(\d{2})(\d{2})_(\d{2})/;       // Regex for F_ type format
+
+    let matchC = inputString.match(regexC);
+    let matchF = inputString.match(regexF);
+
+    if (matchC) {
+        // Extract date components for C_ format
+        let year = matchC[1];
+        let month = matchC[2] - 1; // Month is 0-indexed in JavaScript
+        let day = matchC[3];
+        let hour = matchC[4];
+        let minute = matchC[5];
+
+        // Create a UTC date
+        let utcDate = new Date(Date.UTC(year, month, day, hour, minute));
+
+        // Convert to EST and return
+        return convertToEST(utcDate);
+    } else if (matchF) {
+        // Extract date components for F_ format
+        let year = matchF[1];
+        let month = matchF[2] - 1; // Month is 0-indexed in JavaScript
+        let day = matchF[3];
+        let hour = matchF[4];
+
+        // Create a UTC date
+        let utcDate = new Date(Date.UTC(year, month, day, hour));
+
+        // Convert to EST and return
+        return convertToEST(utcDate);
+    } else {
+        throw new Error("Invalid input string format.");
+    }
+  }
+
+// Test the function with sample inputs
+try {
+    let testStringC = "/home/csutter/dashboard/data/data_camlevel/2024/12/20/C_20241220_16_30.js";
+    let testStringF = "/home/csutter/dashboard/data/data_hrrrlevel/2024/12/20/F_V20241220_17_FH03.js";
+
+    console.log(parseAndConvertToEST(testStringC)); // Example output: "Friday, December 20, at 11:30 AM EST"
+    console.log(parseAndConvertToEST(testStringF)); // Example output: "Friday, December 20, at 12:00 PM EST"
+} catch (error) {
+    console.error(error.message);
+}
+
 
 app.get('/data', (req, res) => {
   console.log('print beginning app get');
@@ -346,6 +409,11 @@ app.get('/data', (req, res) => {
     console.log("PRINTING TIME HERE")
     usedTimePrintUI = convertToEST(filePath)
     console.log(usedTimePrintUI)
+    console.log("done first if")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
+    
 
 
 
@@ -368,6 +436,10 @@ app.get('/data', (req, res) => {
     console.log("PRINTING TIME HERE")
     usedTimePrintUI = convertToEST(filePath)
     console.log(usedTimePrintUI)
+    console.log("done second if else")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
   } else if (param1.includes("Forecast")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
     // console.log('dirName:', dirName);
@@ -399,6 +471,9 @@ app.get('/data', (req, res) => {
     console.log(usedTimePrintUI)
     filePath = path.join(dirPath, filetoload); //firstMatchingFile
     console.log("done third if else")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
 
   } else if (param1.includes("Historical") && param2.includes("data_camlevel")) {
     console.log("entering fourth if else")
@@ -410,6 +485,10 @@ app.get('/data', (req, res) => {
     console.log("PRINTING TIME HERE")
     usedTimePrintUI = convertToEST(filePath)
     console.log(usedTimePrintUI)
+    console.log("done fourth if else")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
 
 
   } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { // Additional check for the substring
@@ -428,11 +507,14 @@ app.get('/data', (req, res) => {
     console.log('First matching file is:');
     console.log(firstMatchingFile);
     filePath = path.join(dirPath, firstMatchingFile);
-    console.log("done fifth if else")
+    // console.log("done fifth if else")
     console.log("PRINTING TIME HERE")
     usedTimePrintUI = convertToEST(filePath)
     console.log(usedTimePrintUI)
-
+    console.log("done fifth if else")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
   } else { // Fallback for other cases
     filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
   }
@@ -465,7 +547,7 @@ app.get('/data', (req, res) => {
         const dictionaryData = JSON.parse(data);
         res.set('Content-Type', 'application/json');
         console.log('through setting res type');
-        res.json({"data":dictionaryData,"time":formattedLastUpdated}); //formattedLastUpdated updating 12/19 with usedTimePrintUI not formattedLastUpdated
+        res.json({"data":dictionaryData,"time":datestrEST}); //formattedLastUpdated updating 12/19 with usedTimePrintUI not formattedLastUpdated
       } catch (parseError) {
         console.error(parseError);
         res.status(500).json({ message: 'Failed to parse JSON' });

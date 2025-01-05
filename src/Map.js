@@ -1002,7 +1002,7 @@ const Map = (props) => {
 
     
 
-      <h2 style={{ margin: '0'}}> Choose the time to display <Tooltip content="Select whether to display current conditions (present/live), forecasted conditions (future), or historical conditions (from past events). The current conditions representthe real-time perspective with the most recently updated data, which is relevent for an up-to-date picture of the road surface conditions. The forecasted conditions represent future conditions, for which there are are no camera images to make predictions at the NYSDOT camera level. The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
+      <h2 style={{ margin: '0'}}> Choose the time to display <Tooltip content="Select whether to display current conditions (present/live), forecasted conditions (future), or historical conditions (from past events). The current conditions represent the real-time perspective with the most recently updated data, which is relevent for an up-to-date picture of the road surface conditions. The forecasted conditions represent future conditions, for which there are are no camera images to make predictions at the NYSDOT camera level. The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
       {/* <p> Choose whether to display </p> */}
       {/* <p style={{ margin: '0', paddingTop: '10px', paddingLeft: '20px'}}>Display live data </p>
       <p style={{ marginTop: '0', marginBottom: '10px'}}>Display historical data (SELECT DATE) </p> */}
@@ -1044,10 +1044,10 @@ const Map = (props) => {
               onChange={handleDateChange}
               showTimeSelect
               timeIntervals={60} // Time increments of 5 minutes
-              minDate={new Date('2024-12-19T00:00:00')} // Start date: Jan 1st, 2024
-              maxDate={new Date('2024-12-19T00:00:00')} //selectedDateET
-              minTime={new Date('2024-12-19T00:00:00').setHours(12, 0, 0)} // Earliest time: 8:00 AM
-              maxTime={new Date('2024-12-19T00:00:00').setHours(23, 0, 0)} // Latest time: 5:00 PM
+              minDate={new Date('2024-12-19T12:00:00')} // Start date: Jan 1st, 2024
+              maxDate={new Date('2024-12-19T11:00:00')} //selectedDateET
+              // minTime={new Date('2024-12-19T00:00:00').setHours(12, 0, 0)} // Earliest time: 8:00 AM
+              // maxTime={new Date('2024-12-19T00:00:00').setHours(23, 0, 0)} // Latest time: 5:00 PM
               dateFormat="Pp" // Date format: MM/DD/YYYY HH:MM
               timeCaption="Time"
               timeFormat="HH:mm"
@@ -1184,6 +1184,15 @@ const Map = (props) => {
         </ul>
       </div>
       <h2 style={{ margin: '0', padding: '0'}}>{`Displaying ${getTitle()}`}</h2>
+{/*       
+      <div>
+          {(showdots) && (
+              <p style={{ margin: '0', padding: '0' }}>{`Camera locations for: ${lastUpdateCam}`}</p>
+          )}
+          {(showFCST) && (
+              <p style={{ margin: '0', padding: '0' }}>{`All locations (shading) for: ${lastUpdateFCST}`}</p>
+          )}
+      </div> */}
       
       <div
         ref={mapContainer}
