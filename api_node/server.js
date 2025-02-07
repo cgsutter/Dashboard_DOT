@@ -187,6 +187,8 @@ function findFirstFileWithSubstring(directory, searchString) {
 
       // Sort the matching files alphabetically
       matchingFiles.sort();
+      console.log("new pront here")
+      console.log(matchingFiles)
 
       // Get the first file
       const firstFile = matchingFiles[0];

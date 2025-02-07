@@ -54,7 +54,7 @@ const Map = (props) => {
   const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(datestring_tofilenamestring(stringRoundedToHr)); 
   // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
   const [roundedToHrET, setRoundedToHrET] = useState(roundTimeToHour(selectedDateET));
-  const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options
+  const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options. List of dates for dropdown from which user selects
   const [selectedForecastET, setSelectedForecastET] = useState('');  //here
   const [selectedForecastETDate, setSelectedForecastETDate] = useState(''); 
   const [selectedForecast, setSelectedForecast] = useState(''); // user selected forecast which is a string (which will need to then prepare the filename, see below)
@@ -1044,8 +1044,8 @@ const Map = (props) => {
               onChange={handleDateChange}
               showTimeSelect
               timeIntervals={60} // Time increments of 5 minutes
-              minDate={new Date('2024-12-19T12:00:00')} // Start date: Jan 1st, 2024
-              maxDate={new Date('2024-12-19T11:00:00')} //selectedDateET
+              minDate={new Date('2025-01-04T16:00:00')} // '2025-01-04T16:00:00' Start date: Jan 1st, 2024 HERE! FOR ADJUSTINGG HISTROICAL DATES!
+              maxDate={new Date('2025-01-06T23:00:00')} // '2025-01-06T23:00:00' selectedDateET
               // minTime={new Date('2024-12-19T00:00:00').setHours(12, 0, 0)} // Earliest time: 8:00 AM
               // maxTime={new Date('2024-12-19T00:00:00').setHours(23, 0, 0)} // Latest time: 5:00 PM
               dateFormat="Pp" // Date format: MM/DD/YYYY HH:MM

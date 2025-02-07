@@ -98,8 +98,8 @@ function prepListForecastOptions(inputHour) {
     const future6 = oneHour * 6;
     const future8 = oneHour * 8;
     const future12 = oneHour * 12;
-    const future18 = oneHour * 18;
-    const future24 = oneHour * 24;
+    // const future18 = oneHour * 18;
+    // const future24 = oneHour * 24;
 
     const hours = [
         new Date(inputHour.getTime() + oneHour),
@@ -110,8 +110,8 @@ function prepListForecastOptions(inputHour) {
         new Date(inputHour.getTime() + future6),
         new Date(inputHour.getTime() + future8),
         new Date(inputHour.getTime() + future12),
-        new Date(inputHour.getTime() + future18),
-        new Date(inputHour.getTime() + future24)
+        // new Date(inputHour.getTime() + future18),
+        // new Date(inputHour.getTime() + future24)
     ];
 
     // look for those files in directory
