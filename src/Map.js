@@ -63,6 +63,8 @@ const Map = (props) => {
   const [selectedPast, setSelectedPast] = useState(''); // user selected
   const [adjacentDays, setAdjacentDays] = useState([]);
   const [filePast, setFilePast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
+  const popupRef = useRef(null); // Store the popup instance
+
 
 
 
@@ -763,7 +765,8 @@ const Map = (props) => {
           },
           properties: {
             color: properties.color || "#000000", // Default color if missing
-            confidence: properties.confidence || "N/A" // Add another property with a default value
+            confidence: properties.confidence || "N/A", // Add another property with a default value
+            modelpred: properties.final_model_pred || "N/A"
 
           }
         };
@@ -790,6 +793,8 @@ const Map = (props) => {
         },
         properties: {
           color: data[key].color,
+          confidence: data[key].confidence || "N/A", // Add another property with a default value
+          modelpred: data[key].final_model_pred || "N/A"
         },
       };
     });
@@ -825,157 +830,127 @@ const Map = (props) => {
 
 
   // this builds the map
+
   useEffect(() => {
-
-    if (!mapInstance) return; // Ensure mapInstance is ready
-
-    // convert into array of conditions 
-    const conditionsArray = makeArray(conditions)
-
-
-    // Convert FCSTdata to GeoJSON
-    const filteredData_hrrr = filterDataByConditions(FCSTdata, conditionsArray);
-
-    // Step 2: Reorder the filtered data based on the specified priority
-    const orderedData_hrrr = reorderDataByPriority(filteredData_hrrr,["poor_viz", , "dry", "wet", "snow","snow_severe"]);
-
-    const geoJSONData = convertDataToGeoJSON(orderedData_hrrr); //FCSTdata
+    if (!mapInstance) return;
   
-
-    // **1. Manage forecast gradient (FCST) source and layer**
+    const conditionsArray = makeArray(conditions);
+  
+    // Process forecast data
+    const filteredData_hrrr = filterDataByConditions(FCSTdata, conditionsArray);
+    const orderedData_hrrr = reorderDataByPriority(filteredData_hrrr, ["poor_viz", "dry", "wet", "snow", "snow_severe"]);
+    const geoJSONData = convertDataToGeoJSON(orderedData_hrrr);
+  
+    // Process cam data
+    const filteredData = filterDataByConditions(data, conditionsArray);
+    const orderedData = reorderDataByPriority(filteredData, ["obs", "poor_viz", "dry", "wet", "snow", "snow_severe"]);
+    const dotsData = convertDataToDots(orderedData);
+  
+    // Manage FCST layer
     if (showFCST) {
       if (mapInstance.getSource('points')) {
-        // Update the data if the source already exists
         mapInstance.getSource('points').setData(geoJSONData);
       } else {
-        // Create the source and layer if they don't exist
-        mapInstance.addSource('points', {
-          type: 'geojson',
-          data: geoJSONData,
-        });
-
+        mapInstance.addSource('points', { type: 'geojson', data: geoJSONData });
         mapInstance.addLayer({
           id: 'point-layer',
           type: 'circle',
           source: 'points',
           paint: {
             'circle-color': ['get', 'color'],
-            'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              7, 10,   // Smaller radius at lower zooms
-              12, 70  // Larger radius at higher zooms
-            ],
-            'circle-opacity': [
-              'interpolate',
-              ['linear'],
-              ['zoom'],
-              7, 0.08,  // Lower opacity at smaller zooms to reduce overlap darkness
-              9, .1,
-              10, 0.2, // Gradual increase in opacity for visibility
-              12, 0.3  // Slightly reduce opacity at higher zooms to balance density
-            ],
-            'circle-blur': 0.5, // Reduce blur for sharper edges
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 10, 12, 70],
+            'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.08, 9, 0.1, 10, 0.2, 12, 0.3],
+            'circle-blur': 0.5,
           },
         });
       }
     } else {
-      // Remove the FCST layer if it exists and showFCST is false
-      if (mapInstance.getLayer('point-layer')) {
-        mapInstance.removeLayer('point-layer');
-      } // point-layer here!
-      if (mapInstance.getSource('points')) {
-        mapInstance.removeSource('points');
-      }
+      if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
+      if (mapInstance.getSource('points')) mapInstance.removeSource('points');
     }
-      
-
-    // 2 manage adding cam level dots
-
-    // console.log("check what is data")
-    // console.log(data)
-
-
-
-    // console.log("check what is conditions (these are user-selected")
-    // console.log(conditions)
-    // Filter and order the data
-    // Step 1: Filter the data based on selected conditions
-    const filteredData = filterDataByConditions(data, conditionsArray);
-
-    // Step 2: Reorder the filtered data based on the specified priority
-    const orderedData = reorderDataByPriority(filteredData,["obs","poor_viz", , "dry", "wet", "snow","snow_severe"]);
-
-    // const filteredData = filterDataByConditions(data, conditions);
-    // const orderedData = orderDataByPriority(filteredData, ["snow_severe", "snow", "wet", "dry", "poor_viz", "obs"]);
-    
-
-    const dotsData = convertDataToDots(orderedData); //data
-
-
+  
+    // Manage cam dots layer
     if (showdots) {
-      // console.log("DOTS DATA!!")
-      // console.log(dotsData)
-
       if (mapInstance.getSource('dots')) {
-        mapInstance.getSource('dots').setData({
-          type: 'FeatureCollection',
-          features: dotsData,
-        });
+        mapInstance.getSource('dots').setData({ type: 'FeatureCollection', features: dotsData });
       } else {
-        mapInstance.addSource('dots', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: dotsData,
-          },
-        });
-    
+        mapInstance.addSource('dots', { type: 'geojson', data: { type: 'FeatureCollection', features: dotsData } });
         mapInstance.addLayer({
           id: 'dots-layer',
           type: 'circle',
           source: 'dots',
-          paint: {
-            'circle-color': ['get', 'color'],
-            'circle-radius': 5, // Adjust radius as needed
-            'circle-opacity': 1, // Adjust opacity as needed
-          },
-          // Ensure dots are on top of other layers
-          'before': 'fill-layer', // Adjust index as needed
+          paint: { 'circle-color': ['get', 'color'], 'circle-radius': 5, 'circle-opacity': 1 },
         });
       }
-    // Check if the layers have been added in the correct order
+    } else {
+      if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
+      if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
+    }
+  
+    // Ensure layers are in the correct order
     const layers = mapInstance.getStyle().layers;
-    const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer'); // point-layer here!
+    const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer');
     const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
-
-    // If the dots layer is below the FCST layer, we move it above
     if (dotsLayerIndex < fcstLayerIndex) {
-      mapInstance.moveLayer( 'point-layer','dots-layer'); //point-layer first one here
+      mapInstance.moveLayer('point-layer', 'dots-layer');
     }
+  
+    const handleMapClick = (event) => {
+      // Remove any existing popup before creating a new one
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
     
-  }
+      let activeLayers = [];
+      if (showFCST) activeLayers.push('point-layer');
+      if (showdots) activeLayers.push('dots-layer');
+    
+      if (activeLayers.length === 0) return;
+    
+      const features = mapInstance.queryRenderedFeatures(event.point, {
+        layers: activeLayers,
+      });
+    
+      if (features.length > 0) {
+        const clickedFeature = features[0];
+        const confidence = clickedFeature.properties.confidence || 'N/A';
+        const modelpred = clickedFeature.properties.modelpred || 'N/A';
+    
+        popupRef.current = new mapboxgl.Popup()
+          .setLngLat(event.lngLat)
+          .setHTML(`<strong>Confidence:</strong> ${confidence}<br><strong>Model Prediction:</strong> ${modelpred}`)
+          .addTo(mapInstance);
+    
+        setTimeout(() => {
+          document.querySelectorAll('.mapboxgl-popup-close-button').forEach(btn => {
+            btn.removeAttribute('aria-hidden');
+          });
+        }, 0);
+      }
+    };
+    
+    // Attach event listener inside useEffect
+    mapInstance.on('click', handleMapClick);
 
+    return () => {
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
+    
+      if (mapInstance) {
+        mapInstance.off('click', handleMapClick);
+    
+        if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
+        if (mapInstance.getSource('points')) mapInstance.removeSource('points');
+        if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
+        if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
+      }
+    };
+    
+  }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]);
 
-  // Cleanup function
-  return () => {
-    if (mapInstance) {
-      if (mapInstance.getLayer('point-layer')) { //'point-layer'
-        mapInstance.removeLayer('point-layer'); //'point-layer'
-      }
-      if (mapInstance.getSource('points')) {
-        mapInstance.removeSource('points');
-      }
-      if (mapInstance.getLayer('dots-layer')) {
-        mapInstance.removeLayer('dots-layer');
-      }
-      if (mapInstance.getSource('dots')) {
-        mapInstance.removeSource('dots');
-      }
-    }
-  };
-  }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]); // Re-run when any of these data dependencies change
 
   // // console.log("log selectedDictionar")
   // // console.log(selectedDictionary)
