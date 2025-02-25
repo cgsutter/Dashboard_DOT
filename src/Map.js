@@ -544,14 +544,11 @@ const Map = (props) => {
           selectedDateCam,
 
         );
-        // const dataloaded_camlevel = resultfetch.data;   // Access the data
-        // const hrrrUpdateTime = resultfetch.time;
 
-        setData(resultfetch.data);
-        setLastUpdateCam(resultfetchHRRR.time);
+        // this is where the main data from API fetch is pulled in
+        setData(resultfetch.data); // the dictionary of model information from the file of interest pulled is in .data
+        setLastUpdateCam(resultfetchHRRR.time); // the selected file time from the file of interest pulled is in .time
   
-        console.log("TIME CAM:")
-        console.log(lastUpdateCam)
         // Fetch and set hrrrlevel data
         const resultfetchHRRR = await fetchData(
           selectedContext, 
@@ -560,11 +557,10 @@ const Map = (props) => {
           [], 
           ''
         );
-        // const dataloaded_hrrrlevel = resultfetch.data;   // Access the data
-        // const hrrrUpdateTime = resultfetch.time;
 
-        setFCSTData(resultfetchHRRR.data);
-        setLastUpdateFCST(resultfetchHRRR.time);
+        // this is where the main data from API fetch is pulled in
+        setFCSTData(resultfetchHRRR.data); // // the dictionary of model information from the file of interest pulled is in .data
+        setLastUpdateFCST(resultfetchHRRR.time); // the selected file time from the file of interest pulled is in .time
 
         console.log(lastUpdateFCST)
       } catch (error) {
@@ -752,6 +748,8 @@ const Map = (props) => {
 
   // Define helper functions to plot fcst color gradients
   // first helper function will convert the dataFCST dictionary to GeoJSON format for easy Map plotting
+  // this is where the lat and lon and model output data (in properties) are parsed out before adding to map
+
   const convertDataToGeoJSON = (datatoconvert) => {
     return {
       type: 'FeatureCollection',
@@ -764,7 +762,9 @@ const Map = (props) => {
             coordinates: [lon, lat] // Mapbox expects [lon, lat]
           },
           properties: {
-            color: properties.color || "#000000" // Default color if missing
+            color: properties.color || "#000000", // Default color if missing
+            confidence: properties.confidence || "N/A" // Add another property with a default value
+
           }
         };
       })

@@ -331,19 +331,25 @@ app.get('/data', (req, res) => {
   const param5 = decodeURIComponent(req.query.param5 || "").trim();
 
   console.log(param1, param2, param3, param4, param5);
-  // console.log("lengths")
-  // console.log(param1.length);
-  // console.log(param2.length);
-  // console.log("check param 1")
-  // console.log(param1)
-  // console.log("check param 2")
-  // console.log(param2)
-  // console.log("check param 3")
-  // console.log(param3)
-  // // param 4 and 5 only relevant for historic look at cam level? maybe back to live view too
-  // console.log("check param 4")
-  // console.log(param4)
+
+  // params 1 through 5 are passed back from the user's selection in UI to the API to find the file of interest... 
+  // param 1 is indicating the time frame of interest - Live, Forecast, or Historical - which affects how the file of interest is found
+  console.log("check param 1")
+  console.log(param1)
+  // param 2 is indicating to grab either cam-level or hrrr-level data - which affects how the file of interest is found
+  console.log("check param 2")
+  console.log(param2)
+  // param 3 is only relevent for hrrr-level files -- bc depending what valid time is requested from user, need to grab the most relevant hrrrr file (the one with the smallest FH)
+  console.log("check param 3")
+  console.log(param3)
+  // param 4 and 5 only relevant for cam-level files -- bc depending what requested time is passed back from user (now, or historical) need to grab the closest relevant file
+  // paran 4 is the list of date dirs to consider for finding closest file
+  console.log("check param 4")
+  console.log(param4)
   // console.log(typeof param4)
+  // param 5 is the requested date time from user
+  console.log("check param 5")
+  console.log(param5)
 
   const dateList = param4.split(',');
   // console.log(dateList)
@@ -549,7 +555,7 @@ app.get('/data', (req, res) => {
         const dictionaryData = JSON.parse(data);
         res.set('Content-Type', 'application/json');
         console.log('through setting res type');
-        res.json({"data":dictionaryData,"time":datestrEST}); //formattedLastUpdated updating 12/19 with usedTimePrintUI not formattedLastUpdated
+        res.json({"data":dictionaryData,"time":datestrEST}); // THIS is the main response, what is returned and sent back from  API to UI. Note formattedLastUpdated updating 12/19 with usedTimePrintUI not formattedLastUpdated. 
       } catch (parseError) {
         console.error(parseError);
         res.status(500).json({ message: 'Failed to parse JSON' });
