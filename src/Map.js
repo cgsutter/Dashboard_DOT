@@ -794,7 +794,8 @@ const Map = (props) => {
         properties: {
           color: data[key].color,
           confidence: data[key].confidence || "N/A", // Add another property with a default value
-          modelpred: data[key].final_model_pred || "N/A"
+          modelpred: data[key].final_model_pred || "N/A",
+          imagePath: data[key].img_model || "N/A"
         },
       };
     });
@@ -830,6 +831,142 @@ const Map = (props) => {
 
 
   // this builds the map
+  // this builds the map
+  // // BEGIN split up....
+  // useEffect(() => {
+  //   if (!mapInstance) return;
+  
+  //   const conditionsArray = makeArray(conditions);
+  
+  //   // Process forecast data
+  //   const filteredData_hrrr = filterDataByConditions(FCSTdata, conditionsArray);
+  //   const orderedData_hrrr = reorderDataByPriority(filteredData_hrrr, ["poor_viz", "dry", "wet", "snow", "snow_severe"]);
+  //   const geoJSONData = convertDataToGeoJSON(orderedData_hrrr);
+  
+  //   // Process cam data
+  //   const filteredData = filterDataByConditions(data, conditionsArray);
+  //   const orderedData = reorderDataByPriority(filteredData, ["obs", "poor_viz", "dry", "wet", "snow", "snow_severe"]);
+  //   const dotsData = convertDataToDots(orderedData);
+  
+  //   // Manage FCST layer
+  //   if (showFCST) {
+  //     if (mapInstance.getSource('points')) {
+  //       mapInstance.getSource('points').setData(geoJSONData);
+  //     } else {
+  //       mapInstance.addSource('points', { type: 'geojson', data: geoJSONData });
+  //       mapInstance.addLayer({
+  //         id: 'point-layer',
+  //         type: 'circle',
+  //         source: 'points',
+  //         paint: {
+  //           'circle-color': ['get', 'color'],
+  //           'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 10, 12, 70],
+  //           'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.08, 9, 0.1, 10, 0.2, 12, 0.3],
+  //           'circle-blur': 0.5,
+  //         },
+  //       });
+  //     }
+  //   } else {
+  //     if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
+  //     if (mapInstance.getSource('points')) mapInstance.removeSource('points');
+  //   }
+  
+  //   // Manage cam dots layer
+  //   if (showdots) {
+  //     if (mapInstance.getSource('dots')) {
+  //       mapInstance.getSource('dots').setData({ type: 'FeatureCollection', features: dotsData });
+  //     } else {
+  //       mapInstance.addSource('dots', { type: 'geojson', data: { type: 'FeatureCollection', features: dotsData } });
+  //       mapInstance.addLayer({
+  //         id: 'dots-layer',
+  //         type: 'circle',
+  //         source: 'dots',
+  //         paint: { 'circle-color': ['get', 'color'], 'circle-radius': 5, 'circle-opacity': 1 },
+  //       });
+  //     }
+  //   } else {
+  //     if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
+  //     if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
+  //   }
+  
+  //   // Ensure layers are in the correct order
+  //   const layers = mapInstance.getStyle().layers;
+  //   const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer');
+  //   const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
+  //   if (dotsLayerIndex < fcstLayerIndex) {
+  //     mapInstance.moveLayer('point-layer', 'dots-layer');
+  //   }
+  //   const handleMapClick = (event) => {
+  //     // Remove any existing popup before creating a new one
+  //     if (popupRef.current) {
+  //       popupRef.current.remove();
+  //       popupRef.current = null;
+  //     }
+    
+  //     let activeLayers = [];
+  //     if (showFCST) activeLayers.push('point-layer');
+  //     if (showdots) activeLayers.push('dots-layer');
+    
+  //     if (activeLayers.length === 0) return;
+    
+  //     const features = mapInstance.queryRenderedFeatures(event.point, {
+  //       layers: activeLayers,
+  //     });
+    
+  //     if (features.length > 0) {
+  //       const clickedFeature = features[0];
+  //       const confidence = clickedFeature.properties.confidence || 'N/A';
+  //       const modelpred = clickedFeature.properties.modelpred || 'N/A';
+  //       const imagePath = clickedFeature.properties.imagePath || ''; // Ensure imagePath is handled safely
+    
+  //       let popupContent = `<strong>Confidence:</strong> ${confidence}<br><strong>Model Prediction:</strong> ${modelpred}`;
+    
+  //       // Add image only if showdots is true and imagePath is valid
+  //       if (showdots && imagePath) {
+  //         popupContent += `<br><img src="${imagePath}" alt="Feature Image" 
+  //                          style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+  //       }
+    
+  //       popupRef.current = new mapboxgl.Popup()
+  //         .setLngLat(event.lngLat)
+  //         .setHTML(popupContent)
+  //         .addTo(mapInstance);
+    
+  //       setTimeout(() => {
+  //         document.querySelectorAll('.mapboxgl-popup-close-button').forEach(btn => {
+  //           btn.removeAttribute('aria-hidden');
+  //         });
+  //       }, 0);
+  //     }
+  //   };
+    
+  //   // Attach event listener inside useEffect
+  //   mapInstance.on('click', handleMapClick);
+    
+  //   return () => {
+  //     if (popupRef.current) {
+  //       popupRef.current.remove();
+  //       popupRef.current = null;
+  //     }
+    
+  //     if (mapInstance) {
+  //       mapInstance.off('click', handleMapClick);
+    
+  //       if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
+  //       if (mapInstance.getSource('points')) mapInstance.removeSource('points');
+  //       if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
+  //       if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
+  //     }
+  //   };
+    
+  // }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]);
+
+  // ..........end split up
+  // // console.log("log selectedDictionar")
+  // // console.log(selectedDictionary)
+  // console.log("log conditions")
+  // console.log(conditions)
+
 
   useEffect(() => {
     if (!mapInstance) return;
@@ -895,33 +1032,57 @@ const Map = (props) => {
       mapInstance.moveLayer('point-layer', 'dots-layer');
     }
   
+    return () => {
+      if (mapInstance) {
+        if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
+        if (mapInstance.getSource('points')) mapInstance.removeSource('points');
+        if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
+        if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
+      }
+    };
+  
+  }, [mapInstance, FCSTdata, data, conditions, showdots, showFCST]);
+  
+  // Separate useEffect for handling clicks
+  useEffect(() => {
+    if (!mapInstance) return;
+  
     const handleMapClick = (event) => {
       // Remove any existing popup before creating a new one
       if (popupRef.current) {
         popupRef.current.remove();
         popupRef.current = null;
       }
-    
+  
       let activeLayers = [];
       if (showFCST) activeLayers.push('point-layer');
       if (showdots) activeLayers.push('dots-layer');
-    
+  
       if (activeLayers.length === 0) return;
-    
+  
       const features = mapInstance.queryRenderedFeatures(event.point, {
         layers: activeLayers,
       });
-    
+  
       if (features.length > 0) {
         const clickedFeature = features[0];
         const confidence = clickedFeature.properties.confidence || 'N/A';
         const modelpred = clickedFeature.properties.modelpred || 'N/A';
-    
+        const imagePath = clickedFeature.properties.imagePath || ''; // Ensure imagePath is handled safely
+  
+        let popupContent = `<strong>Confidence:</strong> ${confidence}<br><strong>Model Prediction:</strong> ${modelpred}`;
+  
+        // Add image only if showdots is true and imagePath is valid
+        if (showdots && imagePath) {
+          popupContent += `<br><img src="${imagePath}" alt="Feature Image" 
+                           style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+        }
+  
         popupRef.current = new mapboxgl.Popup()
           .setLngLat(event.lngLat)
-          .setHTML(`<strong>Confidence:</strong> ${confidence}<br><strong>Model Prediction:</strong> ${modelpred}`)
+          .setHTML(popupContent)
           .addTo(mapInstance);
-    
+  
         setTimeout(() => {
           document.querySelectorAll('.mapboxgl-popup-close-button').forEach(btn => {
             btn.removeAttribute('aria-hidden');
@@ -929,34 +1090,20 @@ const Map = (props) => {
         }, 0);
       }
     };
-    
-    // Attach event listener inside useEffect
+  
     mapInstance.on('click', handleMapClick);
-
+  
     return () => {
       if (popupRef.current) {
         popupRef.current.remove();
         popupRef.current = null;
       }
-    
-      if (mapInstance) {
-        mapInstance.off('click', handleMapClick);
-    
-        if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
-        if (mapInstance.getSource('points')) mapInstance.removeSource('points');
-        if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
-        if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
-      }
+      mapInstance.off('click', handleMapClick);
     };
-    
-  }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]);
+  
+  }, [mapInstance, showdots, showFCST]);
 
-
-  // // console.log("log selectedDictionar")
-  // // console.log(selectedDictionary)
-  // console.log("log conditions")
-  // console.log(conditions)
-
+  
   return (
 
 
