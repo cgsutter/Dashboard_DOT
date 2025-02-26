@@ -25,6 +25,7 @@ function convertToGMT(date) {
   export {convertToGMT};
 
 
+
 function roundTimeToHour(inputTime) {
     if (!(inputTime instanceof Date)) {
         throw new Error("Input must be a Date object");
@@ -36,9 +37,9 @@ function roundTimeToHour(inputTime) {
 }
 export {roundTimeToHour};
 
-function datestring_tofilenamestring(input) {
+function prep_tofilenamestring(input) {
 
-    // console.log("entered otherscript datestring_tofilenamestring")
+    // console.log("entered otherscript prep_tofilenamestring")
     // Split the date and time
 
     const [datePart, timePart] = input.split(' ');
@@ -75,7 +76,7 @@ function datestring_tofilenamestring(input) {
 
   }
 
-export {datestring_tofilenamestring};
+export {prep_tofilenamestring};
 
 
 // for forecast files, we want to look for valid times that are 1 hour, 2 hours, 4, hours, etc, into the future from the now (the moment when the user selects to see forecasts). So take the now time, and grab the forecast hours that the user can select from, dynamically based on when they loaded the forecast page. These will be sent back to the Map.js dropdown file 

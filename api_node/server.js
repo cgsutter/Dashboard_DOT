@@ -62,7 +62,7 @@ function getMostRecentFile(dirPath) {
   return files.length > 0 ? files[0].file : null;
 }
 
-// for historical, find the file that has closest modification time to the requested user date time, and consider looking between 3 directories
+// for historical cam level, find the file that has closest modification time to the requested user date time, and consider looking between 3 directories
 function findClosestFile(parentDir, dirs, targetDate) {
   console.log("inside the findClosestFile function BEGIN")
   console.log("target date?/")
