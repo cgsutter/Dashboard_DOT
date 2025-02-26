@@ -21,6 +21,34 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+
+app.get("/get-image", (req, res) => {
+  console.log("Entering /get-image");
+
+  const imagePath = req.query.path; // Local image path from UI
+  if (!imagePath) {
+    return res.status(400).json({ error: "No image path provided" });
+  }
+
+  // Extract filename from the full path
+  // const filename = path.basename(imagePath);
+
+  // Assuming images are stored in a known directory
+  // const imageDir = "/your/local/image/directory"; // <--- CHANGE THIS
+  // const filePath = path.join(imageDir, filename);
+
+  console.log("Looking for file:", imagePath);
+
+  // Check if the file exists
+  if (!fs.existsSync(imagePath)) {
+    console.log("File not found:", imagePath);
+    return res.status(404).json({ error: "Image not found" });
+  }
+
+  // Send the image file as a response
+  res.sendFile(imagePath);
+});
+
 // Helper function to find the most recent file in a directory
 function getMostRecentFile(dirPath) {
   const files = fs.readdirSync(dirPath)
@@ -321,6 +349,7 @@ try {
 }
 
 
+// this takes the query from UI (5 parameters that are user defined), and then finds the right 1) file and 2) time (just for logging) from those 5 parameters. The 5 params include things like 1) Live vs Fcst vs Historical 2) Cam-level vs Hrrr-level 3) the Date selected from dropdown if it's forecast list, etc. 
 app.get('/data', (req, res) => {
   console.log('print beginning app get');
   // const { param1, param2, param3 } = req.query;
@@ -555,7 +584,7 @@ app.get('/data', (req, res) => {
         const dictionaryData = JSON.parse(data);
         res.set('Content-Type', 'application/json');
         console.log('through setting res type');
-        res.json({"data":dictionaryData,"time":datestrEST}); // THIS is the main response, what is returned and sent back from  API to UI. Note formattedLastUpdated updating 12/19 with usedTimePrintUI not formattedLastUpdated. 
+        res.json({"data":dictionaryData,"time":datestrEST}); // THIS is the main response, what is returned and sent back from  API to UI. // Need to add the image data here and will need to process it to a non local image path and then will have to also update the fetch inside Map.js accordingly. Not just a matter of adding in the img_path with all the rest of teh model return stuff since that is a local file. 
       } catch (parseError) {
         console.error(parseError);
         res.status(500).json({ message: 'Failed to parse JSON' });

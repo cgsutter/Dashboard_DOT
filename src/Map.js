@@ -38,7 +38,7 @@ const Map = (props) => {
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
   const [subdir, setSubdir] = useState('data_camlevel'); // this will be adjusted based on the selection of Context (this is not a toggle itself, but changed based on user toggle)
-  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
+  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical" 
   // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, and using these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
   const [flagLive, setFlagLive] = useState(true);
   const [flagFCST, setFlagFCST] = useState(false);
@@ -1044,10 +1044,11 @@ const Map = (props) => {
   }, [mapInstance, FCSTdata, data, conditions, showdots, showFCST]);
   
   // Separate useEffect for handling clicks
+  // Separate useEffect for handling clicks
   useEffect(() => {
     if (!mapInstance) return;
   
-    const handleMapClick = (event) => {
+    const handleMapClick = async (event) => {
       // Remove any existing popup before creating a new one
       if (popupRef.current) {
         popupRef.current.remove();
@@ -1069,13 +1070,56 @@ const Map = (props) => {
         const confidence = clickedFeature.properties.confidence || 'N/A';
         const modelpred = clickedFeature.properties.modelpred || 'N/A';
         const imagePath = clickedFeature.properties.imagePath || ''; // Ensure imagePath is handled safely
+
+        console.log("confidence")
+        console.log(confidence)
+
+        console.log("modelpred")
+        console.log(modelpred)
+
+        console.log("imagePath")
+        console.log(imagePath)
   
         let popupContent = `<strong>Confidence:</strong> ${confidence}<br><strong>Model Prediction:</strong> ${modelpred}`;
   
         // Add image only if showdots is true and imagePath is valid
+        // if (showdots && imagePath) {
+        //   popupContent += `<br><img src="${imagePath}" alt="Feature Image" 
+        //                    style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+        // }
+
         if (showdots && imagePath) {
-          popupContent += `<br><img src="${imagePath}" alt="Feature Image" 
-                           style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+          // try {
+          //   // Call API to get the actual image URL
+          //   const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/get-image?path=${encodeURIComponent(imagePath)}`);
+          //   const data = await response.json();
+
+          //   console.log("API Response For Image:", data);  // Add this for debugging
+
+        
+          //   if (data.imageUrl) {
+          //     popupContent += `<br><img src="${data.imageUrl}" alt="Feature Image" 
+          //                       style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+          //   }
+          // } catch (error) {
+          //   console.error("Error fetching image:", error);
+          // }
+          try {
+            const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/get-image?path=${encodeURIComponent(imagePath)}`);
+            
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          
+            const blob = await response.blob();  // Convert response to Blob
+            const imageUrl = URL.createObjectURL(blob);  // Create local URL for image
+          
+            console.log("Generated image URL:", imageUrl);  // Debugging
+          
+            popupContent += `<br><img src="${imageUrl}" alt="Feature Image" 
+                              style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+          
+          } catch (error) {
+            console.error("Error fetching image:", error);
+          }
         }
   
         popupRef.current = new mapboxgl.Popup()
