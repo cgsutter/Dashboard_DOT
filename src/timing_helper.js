@@ -198,7 +198,23 @@ function prepFileString_live(dateLiveET) {
 }
 export { prepFileString_live };
 
-function prepFileString_fcst(inputString) {
+function prepFileString_fcst(selectedForecastETInput) {
+    // check 
+    console.log("entered newway FCST hrrr file prep in timing helper")
+    const selectedForecastETDate = prepDateObject_fcst(selectedForecastETInput);
+    const selectedForecast = convertToGMT(selectedForecastETDate);
+    const dateStr = prepDateString(selectedForecast);
+    const hrrrFileName = prep_tofilenamestring(dateStr);
+
+    console.log("returned file name newway:")
+    console.log(hrrrFileName)
+
+    return hrrrFileName
+}
+export { prepFileString_fcst };
+
+// not using this one any more?
+function prepFileString_fcstOLD(inputString) {
     // Check if the input string starts with the expected prefix
     const prefix = "Forecast for ";
     // console.log("heree")
@@ -266,7 +282,7 @@ function prepFileString_fcst(inputString) {
     return result;
 }
 
-export { prepFileString_fcst }; 
+export { prepFileString_fcstOLD }; 
 
 // used to parse out the datestring that will then be used to find the filestring (step 7)
 function prepDateString(inputHour) {

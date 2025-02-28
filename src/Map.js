@@ -5,7 +5,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
 import Tooltip from './Tooltip'; // Import the Tooltip component
 import {convertToGMT} from './timing_helper.js';
-import {roundTimeToHour} from './timing_helper.js';
 import {prepDateString} from './timing_helper.js';
 import {prepListForecastOptions} from './timing_helper.js';
 import {prepFileString_live} from './timing_helper.js';
@@ -42,7 +41,7 @@ const Map = (props) => {
 
 
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical" XXUSERACTION
-  // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, and using these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
+  // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, can use these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
   // const [flagLive, setFlagLive] = useState(true); // may need this if user goes back to live context -- check this
   const [flagFCST, setFlagFCST] = useState(false);
   const [flagHist, setFlagHist] = useState(false);
@@ -52,12 +51,8 @@ const Map = (props) => {
   const [adjacentDaysLive, setAdjacentDaysLive]= useState(prevday_nextday(selectedDateCam));//XXX3 XXinputFetchCam
   const [adjacentDaysHist, setAdjacentDaysHist] = useState([]); //XXX 3-B XXinputFetchCam
   const [selectedDateET, setSelectedDateET] = useState(new Date());  //XXX4 XXUSERACTION
-  // const [selectedDate, setSelectedDate] = useState(convertToGMT(selectedDateET));  //XXX5
-  // const [roundedToHr, setRoundedToHr] = useState(roundTimeToHour(selectedDate));//XXX6
-  // const [stringRoundedToHr, setStringRoundedToHr] = useState(prepDateString(roundedToHr)); //XXX7
-  const [fileLiveHRRR, setfileLiveHRRR] =  useState(prepFileString_live(selectedDateET)); //XXX8 XXinputFetchHRRR
+  const [fileLiveHRRR, setfileLiveHRRR] =  useState(prepFileString_live(new Date())); //XXX8 XXinputFetchHRRR
   // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
-  // const [roundedToHrET, setRoundedToHrET] = useState(roundTimeToHour(selectedDateET)); //XXX9
   const [forecastOptions, setForecastOptions] = useState([]); //XXX10
   const [selectedForecastET, setSelectedForecastET] = useState(''); //XXX11 XXUSERACTION based on user selection from dropdown. The remaining steps parse out time strings and create hrrr file name to request
   const [selectedForecastETDate, setSelectedForecastETDate] = useState(''); //XXX12
@@ -119,7 +114,7 @@ const Map = (props) => {
     setSelectedPastET(date);
   };
 
-  // anytime the context changes, refresh to have certain constants reset (e.g. for Live view, both cams and everywhere should be toggled yes. For forecast view, cam data should be unchecked (greyed out even))
+  // anytime the user-defined context changes (Live, Forecast, Historical) state variables should be updated accordingly -- e.g. 1) flags to display dots and/or forecast 2) if Live grab the current time (of refresh) and prepare inputs for fetching cam-level and hrrr-level inputs for Live display. 3) if Forecast, grab the current time which is used to populate dropdown list for user to then select the fcst of interest. 4) if Historical, display a calendar for user to select past date/time. 
   useEffect(() => {
     if (selectedContext === "Live") { 
       // set the subdir for the API to search for the most recent file for camlevel
@@ -128,31 +123,26 @@ const Map = (props) => {
       setSelectedDateCam(convertToGMT(selectedDateCamET));
       setAdjacentDaysLive(prevday_nextday(selectedDateCam));
       console.log("break 1 A");
-      // const now = new Date(); 
-      // console.log(now); 
+
       setSelectedDateET(new Date());
-      // setSelectedDate(convertToGMT(selectedDateET)); //5here
-      // console.log(selectedDate) // move to log in useeffect to ensure we're seeing the updated value
+
       console.log("break 1 B");
       setShowdots(true);
       setShowFCST(true);
       console.log("break 1 C");
-      // setFlagLive(true);
-      // setFlagFCST(false);
-      // setFlagHist(false);
+
       console.log("break 1 D");
-      // setRoundedToHr(roundTimeToHour(selectedDate));//6here
-      // console.log(roundedToHr);
+
       console.log("break 1 E");
-      // setStringRoundedToHr(prepDateString(roundedToHr));  //7here
-      // console.log(stringRoundedToHr);
+
       console.log("break 1 F");
-      // setfileLiveHRRR(prep_tofilenamestring(stringRoundedToHr)); //7bOR8here
-      // console.log(fileLiveHRRR) ;
+
       setfileLiveHRRR(prepFileString_live(selectedDateET));
       console.log("break 1 G");
-      // console.log("ran initial useeffect w ifs, Live")
-      // console.log(selectedDate)
+      // in case user switches from Live to fcst to back to Live, for example
+      setFlagFCST(false);
+      setFlagHist(false);
+
 
     } else if (selectedContext === "Historical") { // if the user selects historical or forecast, they will select the datetime they want and it will be set that way
       console.log("break 3 A")
@@ -163,7 +153,6 @@ const Map = (props) => {
       setFlagFCST(false);
       setFlagHist(true);
       console.log("break 3 C")
-      // backfill based on user selection NEED TO DO
     } else if (selectedContext === "Forecast") {
       console.log("break 2 A");
       setShowdots(false);
@@ -173,22 +162,11 @@ const Map = (props) => {
       setFlagFCST(true);
       setFlagHist(false);
       console.log("break 2 C");
-      // const now_fcst = new Date(); // KS check this date stuff, why updating weird times not seem to be based on refresh (can update one second apart and it will be like 30 sec diff, or vice versa.)
       setSelectedDateET(new Date());
-      // console.log(selectedDateET)
-      // setSelectedDate(selectedDateET);
-      // console.log(selectedDate); see comment in Live, moved to useeffect
-      // console.log("break 2 D");
-      // setRoundedToHrET(roundTimeToHour(selectedDateET));
-      // console.log(roundedToHr);
       console.log("break 2 E");
-      setForecastOptions(prepListForecastOptions(selectedDateET)); //pickupherelunch get rid of everwhere else that uses roundedToHrET and comment that out above since already adjusted this line of code and the helper fn
+      setForecastOptions(prepListForecastOptions(selectedDateET)); 
       // console.log(forecastOptions)
       console.log("break 2 F");
-
-      // set the initial forecast selection 
-      // setSelectedForecast(forecastOptions[0]);
-      // console.log("break 2 GG");
     }
   }, [selectedContext]); 
 
@@ -197,31 +175,6 @@ const Map = (props) => {
     console.log("selectedDateET:")
     console.log(selectedDateET)
   }, [selectedDateET]);
-
-  // useEffect (() => {
-  //   console.log("TYPE OF SELECTED DATE")
-  //   console.log(typeof selectedDate)
-  // }, [selectedDate]);
-
-  // useEffect (() => {
-  //   console.log("selectedDate")
-  //   console.log(selectedDate)
-  // }, [selectedDate]);
-
-  // useEffect (() => {
-  //   console.log("roundedToHr:")
-  //   console.log(roundedToHr)
-  // }, [roundedToHr]); 
-
-  // useEffect (() => {
-  //   console.log("roundedToHrET:")
-  //   console.log(roundedToHrET)
-  // }, [roundedToHrET]); 
-
-  // useEffect (() => {
-  //   console.log("stringRoundedToHr:")
-  //   console.log(stringRoundedToHr)
-  // }, [stringRoundedToHr]); 
 
 
   useEffect (() => {
@@ -278,65 +231,52 @@ const Map = (props) => {
   // }, [selectedForecast]) ;
 
 
-  
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("parse the date from the user's selected fcst date")
-      console.log("user selection string")
-      console.log(selectedForecastET)
-      setSelectedForecastETDate(prepDateObject_fcst(selectedForecastET));
-    }
-  }, [selectedForecastET]) ;
-  // selectefForecastETDate
-  
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("parsed out date from user selection")
-      console.log(selectedForecastETDate)
-    }
-  }, [selectedForecastETDate]) ;
-
-  // old way
+  // // fcst1
   // useEffect(() => {
   //   if (flagFCST === true) { 
-  //     console.log("running useEffect for Forecast-specific user selection")
-  //     setFileForecast(prepFileString_fcst(selectedForecast));
-  //     // console.log(fileForecast) // needs to be outside useeffect to make sure updated
+  //     console.log("parse the date from the user's selected fcst date")
+  //     console.log("user selection string")
+  //     console.log(selectedForecastET)
+  //     setSelectedForecastETDate(prepDateObject_fcst(selectedForecastET));
+  //   }
+  // }, [selectedForecastET]) ;
+  // // selectefForecastETDate
+  
+  // // just logging
+  // useEffect(() => {
+  //   if (flagFCST === true) { 
+  //     console.log("parsed out date from user selection")
+  //     console.log(selectedForecastETDate)
+  //   }
+  // }, [selectedForecastETDate]) ;
+
+
+  // //fcst 2
+  // useEffect(() => {
+  //   if (flagFCST === true) { 
+  //     console.log("prepare fcst file name part 1")
+  //     setSelectedForecast(convertToGMT(selectedForecastETDate));
   //     console.log("break 2 G");
   //   }
-  // }, [selectedForecast]) ;
+  // }, [selectedForecastETDate]) ;
 
   useEffect(() => {
     if (flagFCST === true) { 
-      console.log("prepare fcst file name part 1")
-      setSelectedForecast(convertToGMT(selectedForecastETDate));
-      console.log("break 2 G");
+      // old way before refactor
+      // console.log("prepare fcst file name part 2")
+      // console.log(typeof selectedForecast)
+      // console.log("NOTE! Below, it will say EST, but the time conversion was correctly converted to GMT... the designation of saying EST does not matter for the next steps which is to parse out the file name")
+      // console.log(selectedForecast)
+      // console.log("rounded to hour, which will then be inpt to find fcst file")
+      // console.log(prepDateString(selectedForecast))
+      // // doing all in one step below but logging each piece above
+      // setFileForecast(prep_tofilenamestring(prepDateString(selectedForecast)))
+      setFileForecast(prepFileString_fcst(selectedForecastET))
+
     }
-  }, [selectedForecastETDate]) ;
-
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("prepare fcst file name part 2")
-      console.log(typeof selectedForecast)
-      console.log("NOTE! Below, it will say EST, but the time conversion was correctly converted to GMT... the designation of saying EST does not matter for the next steps which is to parse out the file name")
-      console.log(selectedForecast)
-      console.log("rounded to hour, which will then be inpt to find fcst file")
-      console.log(prepDateString(selectedForecast))
-      // doing all in one step below but logging each piece above
-      setFileForecast(prep_tofilenamestring(prepDateString(selectedForecast)))
-    }
-  }, [selectedForecast]) ;
+  }, [selectedForecastET]) ;
 
 
-
-  // useEffect(() => {
-  //   if (flagFCST === true) { 
-  //     console.log("GMT maint selected fcst")
-  //     console.log(selectedForecast)
-  //     console.log(prepFileString(selectedForecast))
-  //     console.log(prep_tofilenamestring(prepFileString(selectedForecast)))
-  //   }
-  // }, [selectedForecast]) ;
 
   useEffect(() => {
     if (flagFCST === true) { 
@@ -345,21 +285,6 @@ const Map = (props) => {
     }
   }, [fileForecast]) ;
 
-  // useEffect(() => {
-  //   if (flagFCST === true) { 
-  //     console.log("file forecast read")
-  //     console.log(fileForecast)
-  //   }
-  // }, [fileForecast]) ;
-  
-
-  // useEffect(() => {
-  //   if (flagFCST === true) {  // only care to run this if flagFCST
-  //     console.log("Actual check of selected")
-  //     console.log(fileForecast)
-  //   } 
-  // }
-  // ), [fileForecast]; // KS: why is this loading twice? Can see it logged, It's like it's printing the last one and then this new selection one?
 
   useEffect(() => {
     if (flagHist === true) { 
