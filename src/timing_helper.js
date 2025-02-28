@@ -1,22 +1,3 @@
-// timeUtils.js
-
-// for "live" context
-// don't need a function for this bc it's just going to look in the two dirs for the most recent file
-
-// 
-// export function getTimeOfInterest(baseTime, offsetHours) {
-//     const time = new Date(baseTime);
-//     // for each of these grab whichever file with that valid time has been updated most recently. E.g. for the nearest hour, it should typically be 2FH (we only ever consider files from 2 FH or more due to the lag with 1FH)
-//     // round up to the nearest hour
-//     // offset 1 hour future from that ^
-//     // offset 2 hours future from that ^
-//     // offset 6 hours future from that ^
-//     // etc etc
-//     // or make a dynamic dropdown hwere the user can select WHICH valid times are available to them
-//     time.setHours(time.getHours() + offsetHours);
-//     return time.toISOString();
-// }
-
 function convertToGMT(date) {
     const offset = date.getTimezoneOffset() * 60 * 1000; // Convert minutes to milliseconds
     const gmtDate = new Date(date.getTime() + offset);
@@ -309,16 +290,4 @@ function prevday_nextday(inputDate) {
     return [formatDate(behindDate), formatDate(date), formatDate(aheadDate)];
 }
 export {prevday_nextday};
-
-
-// export default prepFileString;
-
-// export function offsetHours
-
-// export function prepFileString
-
-// export function formatTimeString(time) {
-//     const date = new Date(time);
-//     return `${date.toDateString()} at ${date.toLocaleTimeString()}`;
-// }
 

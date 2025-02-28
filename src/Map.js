@@ -22,7 +22,8 @@ import { api_token_mapbox } from '../credentials.js';
 mapboxgl.accessToken = api_token_mapbox;
 
 
-// This entire Map function is called on in App.js. Inputs are props (state) which is macro map details, like centered lat/lon and zoom. 
+// This Map component is called on in App.js. Inputs are props (state) which is macro map details, like centered lat/lon and zoom. 
+// Map component is re-rendered any time props change or state variables change
 const Map = (props) => {
   const mapContainer = useRef(null);
   const { state } = props; 
@@ -36,33 +37,41 @@ const Map = (props) => {
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
 
-  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical" XXXX
+  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical" XXUSERACTION
   // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, and using these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
   // const [flagLive, setFlagLive] = useState(true); // may need this if user goes back to live context -- check this
   const [flagFCST, setFlagFCST] = useState(false);
   const [flagHist, setFlagHist] = useState(false);
   // Need to set initial values so that the map loads correctly under the initialization of Live. By default in React, these initial state variables are set sequentially. We need them to be dynamic based on the time that the site is loaded, but they still need initial values. Without having in initial values (for example, if we wait for a useEffect to load based on the setDate state), the initial site load won't load. So we need the initial values to be functions (dynamic) of the current time, we need the initialized states to depend on selectedDate, as done below, and it works sequentially as needed. Note that we *also* have these setState functions evaluated in a useEffect to account for the case that the user clicks Forecast or Historical, and then *goes back* to Live.
-  const [selectedDateCamET, setSelectedDateCamET] = useState(new Date());  // XXX1
-  const [selectedDateCam, setSelectedDateCam] = useState(convertToGMT(selectedDateCamET));//XXX2
-  const [adjacentDaysLive, setAdjacentDaysLive]= useState(prevday_nextday(selectedDateCam));//XXX3
-  const [adjacentDaysHist, setAdjacentDaysHist] = useState([]); //XXX3-B??
-  const [selectedDateET, setSelectedDateET] = useState(new Date());  //XXX4
+  const [selectedDateCamET, setSelectedDateCamET] = useState(new Date());  // XXX1 XXUSERACTION
+  const [selectedDateCam, setSelectedDateCam] = useState(convertToGMT(selectedDateCamET));//XXX2 XXinputFetchCam
+  const [adjacentDaysLive, setAdjacentDaysLive]= useState(prevday_nextday(selectedDateCam));//XXX3 XXinputFetchCam
+  const [adjacentDaysHist, setAdjacentDaysHist] = useState([]); //XXX 3-B XXinputFetchCam
+  const [selectedDateET, setSelectedDateET] = useState(new Date());  //XXX4 XXUSERACTION
   const [selectedDate, setSelectedDate] = useState(convertToGMT(selectedDateET));  //XXX5
   const [roundedToHr, setRoundedToHr] = useState(roundTimeToHour(selectedDate));//XXX6
   const [stringRoundedToHr, setStringRoundedToHr] = useState(prepFileString(roundedToHr)); //XXX7
-  const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(prep_tofilenamestring(stringRoundedToHr)); //XXX8
+  const [fileLiveHRRR, setfileLiveHRRR] =  useState(prep_tofilenamestring(stringRoundedToHr)); //XXX8 XXinputFetchHRRR
   // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
   const [roundedToHrET, setRoundedToHrET] = useState(roundTimeToHour(selectedDateET)); //XXX9
   const [forecastOptions, setForecastOptions] = useState([]); //XXX10
-  const [selectedForecastET, setSelectedForecastET] = useState(''); //XXX11 based on user selection from dropdown. The remaining steps parse out time strings and create hrrr file name to request
+  const [selectedForecastET, setSelectedForecastET] = useState(''); //XXX11 XXUSERACTION based on user selection from dropdown. The remaining steps parse out time strings and create hrrr file name to request
   const [selectedForecastETDate, setSelectedForecastETDate] = useState(''); //XXX12
   const [selectedForecast, setSelectedForecast] = useState(''); //XXX13 selected forecast which is a string (which will need to then prepare the filename, see below)
-  const [fileForecast, setFileForecast] = useState(''); //XXX14
-  const [selectedPastET, setSelectedPastET] = useState(''); //XXX11-B (historical equivalent to forecast)
-  const [selectedPast, setSelectedPast] = useState(''); //XXX11-B 
-  const [filePast, setFilePast] = useState(''); //XXX14-B 
-
+  const [fileForecast, setFileForecast] = useState(''); //XXX14  XXinputFetchHRRR
+  const [selectedPastET, setSelectedPastET] = useState(''); //XXX 1-B and 11-B (historical equivalent to forecast) XXUSERACTION
+  const [selectedPast, setSelectedPast] = useState(''); //XXX 2-B XXinputFetchCam
+  const [filePast, setFilePast] = useState(''); //XXX14-B XXinputFetchHRRR
   const popupRef = useRef(null); // Store the popup instance
+
+  const [conditions, setConditions] = useState({
+    snow_severe: true,
+    snow: true,
+    wet: true,
+    dry: true,
+    poor_viz: true,
+    obs: true,
+  });
 
 
   // Return text for the dashboard title based on the user's selected case
@@ -82,14 +91,7 @@ const Map = (props) => {
   // First: set up how to handle user interaction (dropdown of cases, or selection checkboxes of classes)
 
   // Set which conditions to map. Initially, only map the 4 main ones
-  const [conditions, setConditions] = useState({
-    snow_severe: true,
-    snow: true,
-    wet: true,
-    dry: true,
-    poor_viz: true,
-    obs: true,
-  });
+
 
   // Related to above, define this function to handle changes to the road surface condition check boxes based on user interaction on dashbaord
   const handleConditionChange = (event) => {
@@ -108,6 +110,11 @@ const Map = (props) => {
  
   };
 
+  // Handle date change from DatePicker for historical 
+  const handleDateChange = (date) => {
+    setSelectedPastET(date);
+  };
+
   // anytime the context changes, refresh to have certain constants reset (e.g. for Live view, both cams and everywhere should be toggled yes. For forecast view, cam data should be unchecked (greyed out even))
   useEffect(() => {
     if (selectedContext === "Live") { 
@@ -120,7 +127,7 @@ const Map = (props) => {
       // const now = new Date(); 
       // console.log(now); 
       setSelectedDateET(new Date());
-      setSelectedDate(convertToGMT(selectedDateET));
+      setSelectedDate(convertToGMT(selectedDateET)); //5here
       // console.log(selectedDate) // move to log in useeffect to ensure we're seeing the updated value
       console.log("break 1 B");
       setShowdots(true);
@@ -130,14 +137,14 @@ const Map = (props) => {
       // setFlagFCST(false);
       // setFlagHist(false);
       console.log("break 1 D");
-      setRoundedToHr(roundTimeToHour(selectedDate));
+      setRoundedToHr(roundTimeToHour(selectedDate));//6here
       // console.log(roundedToHr);
       console.log("break 1 E");
-      setStringRoundedToHr(prepFileString(roundedToHr)); 
+      setStringRoundedToHr(prepFileString(roundedToHr));  //7here
       // console.log(stringRoundedToHr);
       console.log("break 1 F");
-      setFileLiveOrHistHRRR(prep_tofilenamestring(stringRoundedToHr));
-      // console.log(fileLiveOrHistHRRR) ;
+      setfileLiveHRRR(prep_tofilenamestring(stringRoundedToHr));
+      // console.log(fileLiveHRRR) ;
       console.log("break 1 G");
       // console.log("ran initial useeffect w ifs, Live")
       // console.log(selectedDate)
@@ -213,9 +220,9 @@ const Map = (props) => {
 
 
   useEffect (() => {
-    console.log("fileLiveOrHistHRRR:")
-    console.log(fileLiveOrHistHRRR)
-  }, [fileLiveOrHistHRRR]); 
+    console.log("fileLiveHRRR:")
+    console.log(fileLiveHRRR)
+  }, [fileLiveHRRR]); 
         
   useEffect (() => {
     console.log("selectedDate:")
@@ -403,11 +410,6 @@ const Map = (props) => {
     console.log(lastUpdateFCST)
   }, [lastUpdateFCST]) ;
 
-  // Handle date change from DatePçicker
-  const handleDateChange = (date) => {
-    setSelectedPastET(date);
-  };
-
   // prep the other dir paths for previous and next days in case edge case of camlevel date (like if request is for midnight on 11/10, maybe the closest file is 11:58 on 11/9)
   useEffect(() => {
     if (flagHist === true) { 
@@ -438,23 +440,12 @@ const Map = (props) => {
 
 
 
-
-
-  
-
   // Second: Load in the data
 
-  // Define this function that, when called on (see useEffect later) will load the corresponding data based on user selection
+  // Define helper function to fect data from API. When called on (see useEffect later) will load the corresponding data based on user selection
   const fetchData = async (inputcontext, inputlevel, inputfilestring, inputdirsadjacent, inputcamdate) => {
     try {
-      // console.log("beginning fetch")
-      // // console.log(dictinput)
-      // console.log(`${inputcontext}, ${inputlevel}, ${inputfilestring}`)
-      // console.log("try sending two params")
-      // const p2 = 'cam';
-      // // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
-      // console.log("fetch query for API")
-      // console.log(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`)
+
       const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}&param4=${inputdirsadjacent}&param5=${inputcamdate}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
@@ -462,9 +453,6 @@ const Map = (props) => {
           'Content-Type': 'application/json'
         }
       })
-      // .then(async (res)=> await // console.log('res',res.json()));
-      // console.log("got through await fetch")
-      // // console.log(response.status)
 
       if (!response.ok) {
         console.error("Failed to fetch data:", response.statusText);
@@ -472,15 +460,6 @@ const Map = (props) => {
       }
      
       const apiResponse = await response.json();
-      // console.log('API Response:', apiResponse); // Log API response
-      // console.log("through here????")
-
-      // console.log('try printing in map when pulling data from api');
-      // console.log('JSON Data CAMLEVEL:', apiResponse.data);
-      // console.log('TIME OF CAM DATA UPDATE:', apiResponse.time);
-      // setData(apiResponse.data); // Update data state
-      // setLastUpdateCam(apiResponse.time)
-      // need to also return time
 
       return {
         data: apiResponse.data, // Assuming `data` is part of the API response
@@ -494,7 +473,6 @@ const Map = (props) => {
 
   // Load the data
   // Do this by calling the fetchdata function when selectedDictionary changes (based on user intraction), and do this by using the built in React useEffect feature
-
 
   useEffect(() => {
     console.log("upon initial render");
@@ -520,7 +498,7 @@ const Map = (props) => {
         const resultfetchHRRR = await fetchData(
           selectedContext, 
           "data_hrrrlevel", 
-          fileLiveOrHistHRRR, 
+          fileLiveHRRR, 
           [], 
           ''
         );
@@ -563,7 +541,7 @@ const Map = (props) => {
           const resultfetchHRRR2 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 
-            fileLiveOrHistHRRR, 
+            fileLiveHRRR, 
             [], 
             ''
           );
