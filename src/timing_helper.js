@@ -68,11 +68,12 @@ export {prep_tofilenamestring};
 
 
 
-function prepListForecastOptions(inputHour) {
+function prepListForecastOptions(selectedDateETInput) {
+    console.log("beginning prepListForecastOptions")
+    console.log("inputted time from which to create dropdown options for future times")
+    console.log(selectedDateETInput)
 
-    // console.log("beginning prepListForecastOptions")
-
-    
+    const inputHour = roundTimeToHour(selectedDateETInput)
     
     const oneHour = 60 * 60 * 1000;
     const future2 = oneHour * 2;
@@ -113,7 +114,8 @@ function prepListForecastOptions(inputHour) {
         })} ET`
     );
 
-    // console.log(listy)
+    console.log("return list")
+    console.log(listy)
     return listy
 }
 

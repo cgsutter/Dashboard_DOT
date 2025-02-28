@@ -35,8 +35,11 @@ const Map = (props) => {
   const [mapInstance, setMapInstance] = useState(null);
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
+
+  // State variables below are for user-selected states (dynamic based on their interation w UI), and then those needed for input to fetch API data
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
+
 
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical" XXUSERACTION
   // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, and using these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
@@ -54,7 +57,7 @@ const Map = (props) => {
   // const [stringRoundedToHr, setStringRoundedToHr] = useState(prepDateString(roundedToHr)); //XXX7
   const [fileLiveHRRR, setfileLiveHRRR] =  useState(prepFileString_live(selectedDateET)); //XXX8 XXinputFetchHRRR
   // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
-  const [roundedToHrET, setRoundedToHrET] = useState(roundTimeToHour(selectedDateET)); //XXX9
+  // const [roundedToHrET, setRoundedToHrET] = useState(roundTimeToHour(selectedDateET)); //XXX9
   const [forecastOptions, setForecastOptions] = useState([]); //XXX10
   const [selectedForecastET, setSelectedForecastET] = useState(''); //XXX11 XXUSERACTION based on user selection from dropdown. The remaining steps parse out time strings and create hrrr file name to request
   const [selectedForecastETDate, setSelectedForecastETDate] = useState(''); //XXX12
@@ -176,10 +179,10 @@ const Map = (props) => {
       // setSelectedDate(selectedDateET);
       // console.log(selectedDate); see comment in Live, moved to useeffect
       // console.log("break 2 D");
-      setRoundedToHrET(roundTimeToHour(selectedDateET));
+      // setRoundedToHrET(roundTimeToHour(selectedDateET));
       // console.log(roundedToHr);
       console.log("break 2 E");
-      setForecastOptions(prepListForecastOptions(roundedToHrET));
+      setForecastOptions(prepListForecastOptions(selectedDateET)); //pickupherelunch get rid of everwhere else that uses roundedToHrET and comment that out above since already adjusted this line of code and the helper fn
       // console.log(forecastOptions)
       console.log("break 2 F");
 
@@ -210,10 +213,10 @@ const Map = (props) => {
   //   console.log(roundedToHr)
   // }, [roundedToHr]); 
 
-  useEffect (() => {
-    console.log("roundedToHrET:")
-    console.log(roundedToHrET)
-  }, [roundedToHrET]); 
+  // useEffect (() => {
+  //   console.log("roundedToHrET:")
+  //   console.log(roundedToHrET)
+  // }, [roundedToHrET]); 
 
   // useEffect (() => {
   //   console.log("stringRoundedToHr:")
