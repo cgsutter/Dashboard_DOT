@@ -6,8 +6,9 @@ import camdata from "../data/dot_cam_latlon.js";
 import Tooltip from './Tooltip'; // Import the Tooltip component
 import {convertToGMT} from './timing_helper.js';
 import {roundTimeToHour} from './timing_helper.js';
-import {prepFileString} from './timing_helper.js';
+import {prepDateString} from './timing_helper.js';
 import {prepListForecastOptions} from './timing_helper.js';
+import {prepFileString_live} from './timing_helper.js';
 import {prepFileString_fcst} from './timing_helper.js';
 import {prep_tofilenamestring} from './timing_helper.js';
 import {prepDateObject_fcst} from './timing_helper.js';
@@ -48,10 +49,10 @@ const Map = (props) => {
   const [adjacentDaysLive, setAdjacentDaysLive]= useState(prevday_nextday(selectedDateCam));//XXX3 XXinputFetchCam
   const [adjacentDaysHist, setAdjacentDaysHist] = useState([]); //XXX 3-B XXinputFetchCam
   const [selectedDateET, setSelectedDateET] = useState(new Date());  //XXX4 XXUSERACTION
-  const [selectedDate, setSelectedDate] = useState(convertToGMT(selectedDateET));  //XXX5
-  const [roundedToHr, setRoundedToHr] = useState(roundTimeToHour(selectedDate));//XXX6
-  const [stringRoundedToHr, setStringRoundedToHr] = useState(prepFileString(roundedToHr)); //XXX7
-  const [fileLiveHRRR, setfileLiveHRRR] =  useState(prep_tofilenamestring(stringRoundedToHr)); //XXX8 XXinputFetchHRRR
+  // const [selectedDate, setSelectedDate] = useState(convertToGMT(selectedDateET));  //XXX5
+  // const [roundedToHr, setRoundedToHr] = useState(roundTimeToHour(selectedDate));//XXX6
+  // const [stringRoundedToHr, setStringRoundedToHr] = useState(prepDateString(roundedToHr)); //XXX7
+  const [fileLiveHRRR, setfileLiveHRRR] =  useState(prepFileString_live(selectedDateET)); //XXX8 XXinputFetchHRRR
   // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
   const [roundedToHrET, setRoundedToHrET] = useState(roundTimeToHour(selectedDateET)); //XXX9
   const [forecastOptions, setForecastOptions] = useState([]); //XXX10
@@ -127,7 +128,7 @@ const Map = (props) => {
       // const now = new Date(); 
       // console.log(now); 
       setSelectedDateET(new Date());
-      setSelectedDate(convertToGMT(selectedDateET)); //5here
+      // setSelectedDate(convertToGMT(selectedDateET)); //5here
       // console.log(selectedDate) // move to log in useeffect to ensure we're seeing the updated value
       console.log("break 1 B");
       setShowdots(true);
@@ -137,14 +138,15 @@ const Map = (props) => {
       // setFlagFCST(false);
       // setFlagHist(false);
       console.log("break 1 D");
-      setRoundedToHr(roundTimeToHour(selectedDate));//6here
+      // setRoundedToHr(roundTimeToHour(selectedDate));//6here
       // console.log(roundedToHr);
       console.log("break 1 E");
-      setStringRoundedToHr(prepFileString(roundedToHr));  //7here
+      // setStringRoundedToHr(prepDateString(roundedToHr));  //7here
       // console.log(stringRoundedToHr);
       console.log("break 1 F");
-      setfileLiveHRRR(prep_tofilenamestring(stringRoundedToHr));
+      // setfileLiveHRRR(prep_tofilenamestring(stringRoundedToHr)); //7bOR8here
       // console.log(fileLiveHRRR) ;
+      setfileLiveHRRR(prepFileString_live(selectedDateET));
       console.log("break 1 G");
       // console.log("ran initial useeffect w ifs, Live")
       // console.log(selectedDate)
@@ -193,30 +195,30 @@ const Map = (props) => {
     console.log(selectedDateET)
   }, [selectedDateET]);
 
-  useEffect (() => {
-    console.log("TYPE OF SELECTED DATE")
-    console.log(typeof selectedDate)
-  }, [selectedDate]);
+  // useEffect (() => {
+  //   console.log("TYPE OF SELECTED DATE")
+  //   console.log(typeof selectedDate)
+  // }, [selectedDate]);
 
-  useEffect (() => {
-    console.log("selectedDate")
-    console.log(selectedDate)
-  }, [selectedDate]);
+  // useEffect (() => {
+  //   console.log("selectedDate")
+  //   console.log(selectedDate)
+  // }, [selectedDate]);
 
-  useEffect (() => {
-    console.log("roundedToHr:")
-    console.log(roundedToHr)
-  }, [roundedToHr]); 
+  // useEffect (() => {
+  //   console.log("roundedToHr:")
+  //   console.log(roundedToHr)
+  // }, [roundedToHr]); 
 
   useEffect (() => {
     console.log("roundedToHrET:")
     console.log(roundedToHrET)
   }, [roundedToHrET]); 
 
-  useEffect (() => {
-    console.log("stringRoundedToHr:")
-    console.log(stringRoundedToHr)
-  }, [stringRoundedToHr]); 
+  // useEffect (() => {
+  //   console.log("stringRoundedToHr:")
+  //   console.log(stringRoundedToHr)
+  // }, [stringRoundedToHr]); 
 
 
   useEffect (() => {
@@ -224,10 +226,10 @@ const Map = (props) => {
     console.log(fileLiveHRRR)
   }, [fileLiveHRRR]); 
         
-  useEffect (() => {
-    console.log("selectedDate:")
-    console.log(selectedDate)
-  }, [selectedDate]); 
+  // useEffect (() => {
+  //   console.log("selectedDate:")
+  //   console.log(selectedDate)
+  // }, [selectedDate]); 
 
   useEffect (() => {
     console.log("forecastOptions:")
@@ -316,9 +318,9 @@ const Map = (props) => {
       console.log("NOTE! Below, it will say EST, but the time conversion was correctly converted to GMT... the designation of saying EST does not matter for the next steps which is to parse out the file name")
       console.log(selectedForecast)
       console.log("rounded to hour, which will then be inpt to find fcst file")
-      console.log(prepFileString(selectedForecast))
+      console.log(prepDateString(selectedForecast))
       // doing all in one step below but logging each piece above
-      setFileForecast(prep_tofilenamestring(prepFileString(selectedForecast)))
+      setFileForecast(prep_tofilenamestring(prepDateString(selectedForecast)))
     }
   }, [selectedForecast]) ;
 
@@ -365,7 +367,7 @@ const Map = (props) => {
 
   useEffect(() => {
     if (flagHist === true) { 
-      setFilePast(prep_tofilenamestring(prepFileString(selectedPast)));
+      setFilePast(prep_tofilenamestring(prepDateString(selectedPast)));
       console.log("break for hist");
     }
   }, [selectedPast]) ;

@@ -1,3 +1,4 @@
+// used to convert the time of dashboard load or user-selected time from ET to GMT (creates 5)
 function convertToGMT(date) {
     const offset = date.getTimezoneOffset() * 60 * 1000; // Convert minutes to milliseconds
     const gmtDate = new Date(date.getTime() + offset);
@@ -6,7 +7,7 @@ function convertToGMT(date) {
   export {convertToGMT};
 
 
-
+// used to round dashboard load time to nearest hour (creates 6)
 function roundTimeToHour(inputTime) {
     if (!(inputTime instanceof Date)) {
         throw new Error("Input must be a Date object");
@@ -18,6 +19,7 @@ function roundTimeToHour(inputTime) {
 }
 export {roundTimeToHour};
 
+// 7bOR8 prep file name string
 function prep_tofilenamestring(input) {
 
     // console.log("entered otherscript prep_tofilenamestring")
@@ -180,6 +182,20 @@ function prepDateObject_fcst(inputString) {
 
 export { prepDateObject_fcst };
 
+function prepFileString_live(dateLiveET) {
+    // check 
+    console.log("entered live hrrr file prep in timing helper")
+    const dateLiveGMT = convertToGMT(dateLiveET); //5here
+    const roundToHr = roundTimeToHour(dateLiveGMT);//6here
+    const dateStr = prepDateString(roundToHr); //7here
+    const hrrrFileName = prep_tofilenamestring(dateStr); // returns 8 needed for Mapping
+    console.log("returned file name:")
+    console.log(hrrrFileName)
+
+    return hrrrFileName
+}
+export { prepFileString_live };
+
 function prepFileString_fcst(inputString) {
     // Check if the input string starts with the expected prefix
     const prefix = "Forecast for ";
@@ -250,8 +266,8 @@ function prepFileString_fcst(inputString) {
 
 export { prepFileString_fcst }; 
 
-
-function prepFileString(inputHour) {
+// used to parse out the datestring that will then be used to find the filestring (step 7)
+function prepDateString(inputHour) {
     // console.log("entered otherscript prepFileString")
     // console.log ("entering function in scrip!!")
     // console.log("printing the input:)")
@@ -267,7 +283,7 @@ function prepFileString(inputHour) {
     // console.log(datename)
     return datename;
 }
-export {prepFileString};
+export {prepDateString};
 
 
 function prevday_nextday(inputDate) {
