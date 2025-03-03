@@ -1,22 +1,4 @@
-// timeUtils.js
-
-// for "live" context
-// don't need a function for this bc it's just going to look in the two dirs for the most recent file
-
-// 
-// export function getTimeOfInterest(baseTime, offsetHours) {
-//     const time = new Date(baseTime);
-//     // for each of these grab whichever file with that valid time has been updated most recently. E.g. for the nearest hour, it should typically be 2FH (we only ever consider files from 2 FH or more due to the lag with 1FH)
-//     // round up to the nearest hour
-//     // offset 1 hour future from that ^
-//     // offset 2 hours future from that ^
-//     // offset 6 hours future from that ^
-//     // etc etc
-//     // or make a dynamic dropdown hwere the user can select WHICH valid times are available to them
-//     time.setHours(time.getHours() + offsetHours);
-//     return time.toISOString();
-// }
-
+// used to convert the time of dashboard load or user-selected time from ET to GMT (creates 5)
 function convertToGMT(date) {
     const offset = date.getTimezoneOffset() * 60 * 1000; // Convert minutes to milliseconds
     const gmtDate = new Date(date.getTime() + offset);
@@ -25,6 +7,7 @@ function convertToGMT(date) {
   export {convertToGMT};
 
 
+// used to round dashboard load time to nearest hour (creates 6)
 function roundTimeToHour(inputTime) {
     if (!(inputTime instanceof Date)) {
         throw new Error("Input must be a Date object");
@@ -36,16 +19,23 @@ function roundTimeToHour(inputTime) {
 }
 export {roundTimeToHour};
 
-function datestring_tofilenamestring(input) {
+// 7bOR8 prep file name string
+function prep_tofilenamestring(input) {
 
-    // console.log("entered otherscript datestring_tofilenamestring")
+    // console.log("entered otherscript prep_tofilenamestring")
     // Split the date and time
 
     const [datePart, timePart] = input.split(' ');
     // if empty split, 2024-11-18_11:00
 
+    // Extract the year, month, and day
+    const [year, month, day] = datePart.split('-');
+
+    // Format the date as yyyymmdd
+    const formattedDate = `${year}${month.padStart(2, '0')}${day.padStart(2, '0')}`;
+
     // // Remove dashes from the date
-    const formattedDate = datePart.replace(/-/g, '');
+    // const formattedDate = datePart.replace(/-/g, '');
 
     // // Extract the hour from the time
     const [hour, min] = String(timePart).split(':');
@@ -55,10 +45,21 @@ function datestring_tofilenamestring(input) {
     // Combine the date and hour in the desired format
     return `V${formattedDate}_${hour}`;
 
+// // Split the date and time
+// const [datePart, timePart] = input.split(' ');
+    
+
+
+// // Extract the hour from the time
+// const [hour, min] = String(timePart).split(':');
+
+// // Combine the date and hour in the desired format
+// return `V${formattedDate}_${hour}`;
+
 
   }
 
-export {datestring_tofilenamestring};
+export {prep_tofilenamestring};
 
 
 // for forecast files, we want to look for valid times that are 1 hour, 2 hours, 4, hours, etc, into the future from the now (the moment when the user selects to see forecasts). So take the now time, and grab the forecast hours that the user can select from, dynamically based on when they loaded the forecast page. These will be sent back to the Map.js dropdown file 
@@ -67,11 +68,12 @@ export {datestring_tofilenamestring};
 
 
 
-function prepListForecastOptions(inputHour) {
+function prepListForecastOptions(selectedDateETInput) {
+    console.log("beginning prepListForecastOptions")
+    console.log("inputted time from which to create dropdown options for future times")
+    console.log(selectedDateETInput)
 
-    // console.log("beginning prepListForecastOptions")
-
-    
+    const inputHour = roundTimeToHour(selectedDateETInput)
     
     const oneHour = 60 * 60 * 1000;
     const future2 = oneHour * 2;
@@ -81,8 +83,8 @@ function prepListForecastOptions(inputHour) {
     const future6 = oneHour * 6;
     const future8 = oneHour * 8;
     const future12 = oneHour * 12;
-    const future18 = oneHour * 18;
-    const future24 = oneHour * 24;
+    // const future18 = oneHour * 18;
+    // const future24 = oneHour * 24;
 
     const hours = [
         new Date(inputHour.getTime() + oneHour),
@@ -93,8 +95,8 @@ function prepListForecastOptions(inputHour) {
         new Date(inputHour.getTime() + future6),
         new Date(inputHour.getTime() + future8),
         new Date(inputHour.getTime() + future12),
-        new Date(inputHour.getTime() + future18),
-        new Date(inputHour.getTime() + future24)
+        // new Date(inputHour.getTime() + future18),
+        // new Date(inputHour.getTime() + future24)
     ];
 
     // look for those files in directory
@@ -112,7 +114,8 @@ function prepListForecastOptions(inputHour) {
         })} ET`
     );
 
-    // console.log(listy)
+    console.log("return list")
+    console.log(listy)
     return listy
 }
 
@@ -181,7 +184,37 @@ function prepDateObject_fcst(inputString) {
 
 export { prepDateObject_fcst };
 
-function prepFileString_fcst(inputString) {
+function prepFileString_live(dateLiveET) {
+    // check 
+    console.log("entered live hrrr file prep in timing helper")
+    const dateLiveGMT = convertToGMT(dateLiveET); //5here
+    const roundToHr = roundTimeToHour(dateLiveGMT);//6here
+    const dateStr = prepDateString(roundToHr); //7here
+    const hrrrFileName = prep_tofilenamestring(dateStr); // returns 8 needed for Mapping
+    console.log("returned file name:")
+    console.log(hrrrFileName)
+
+    return hrrrFileName
+}
+export { prepFileString_live };
+
+function prepFileString_fcst(selectedForecastETInput) {
+    // check 
+    console.log("entered newway FCST hrrr file prep in timing helper")
+    const selectedForecastETDate = prepDateObject_fcst(selectedForecastETInput);
+    const selectedForecast = convertToGMT(selectedForecastETDate);
+    const dateStr = prepDateString(selectedForecast);
+    const hrrrFileName = prep_tofilenamestring(dateStr);
+
+    console.log("returned file name newway:")
+    console.log(hrrrFileName)
+
+    return hrrrFileName
+}
+export { prepFileString_fcst };
+
+// not using this one any more?
+function prepFileString_fcstOLD(inputString) {
     // Check if the input string starts with the expected prefix
     const prefix = "Forecast for ";
     // console.log("heree")
@@ -249,10 +282,10 @@ function prepFileString_fcst(inputString) {
     return result;
 }
 
-export { prepFileString_fcst }; 
+export { prepFileString_fcstOLD }; 
 
-
-function prepFileString(inputHour) {
+// used to parse out the datestring that will then be used to find the filestring (step 7)
+function prepDateString(inputHour) {
     // console.log("entered otherscript prepFileString")
     // console.log ("entering function in scrip!!")
     // console.log("printing the input:)")
@@ -268,7 +301,7 @@ function prepFileString(inputHour) {
     // console.log(datename)
     return datename;
 }
-export {prepFileString};
+export {prepDateString};
 
 
 function prevday_nextday(inputDate) {
@@ -291,16 +324,4 @@ function prevday_nextday(inputDate) {
     return [formatDate(behindDate), formatDate(date), formatDate(aheadDate)];
 }
 export {prevday_nextday};
-
-
-// export default prepFileString;
-
-// export function offsetHours
-
-// export function prepFileString
-
-// export function formatTimeString(time) {
-//     const date = new Date(time);
-//     return `${date.toDateString()} at ${date.toLocaleTimeString()}`;
-// }
 

@@ -1,15 +1,15 @@
-// import * as React from 'react';
+// import * as React from 'react'; // pushing small change from clean git pull into dashboard_csutter
 import React, { useState, useRef, useEffect } from 'react';
 import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import camdata from "../data/dot_cam_latlon.js";
 import Tooltip from './Tooltip'; // Import the Tooltip component
 import {convertToGMT} from './timing_helper.js';
-import {roundTimeToHour} from './timing_helper.js';
-import {prepFileString} from './timing_helper.js';
+import {prepDateString} from './timing_helper.js';
 import {prepListForecastOptions} from './timing_helper.js';
+import {prepFileString_live} from './timing_helper.js';
 import {prepFileString_fcst} from './timing_helper.js';
-import {datestring_tofilenamestring} from './timing_helper.js';
+import {prep_tofilenamestring} from './timing_helper.js';
 import {prepDateObject_fcst} from './timing_helper.js';
 import {prevday_nextday} from './timing_helper.js';
 import DatePicker from "react-datepicker";
@@ -22,72 +22,56 @@ import { api_token_mapbox } from '../credentials.js';
 mapboxgl.accessToken = api_token_mapbox;
 
 
-// This entire Map function is called on in App.js. Inputs are props (state) which is macro map details, like centered lat/lon and zoom. 
+// This Map component is called on in App.js. Inputs are props (state) which is macro map details, like centered lat/lon and zoom. 
+// Map component is re-rendered any time props change or state variables change
 const Map = (props) => {
   const mapContainer = useRef(null);
   const { state } = props; 
   // const [autoUpdate, setAutoUpdate] = useState(false); // Track if auto-update is enabled
-  const [selectedDictionary, setSelectedDictionary] = useState('camlocs_current'); // selectedDictionary is the for the corresponding case that the user selected
-  const [selectedFCSTDictionary, setSelectedFCSTDictionary] = useState('FCST_current'); // equivalent of the above but for fcst data
   const [data, setData] = useState({}); // Based on the selectedDictionary, load the corresponding data using the API and store it in data
   const [FCSTdata, setFCSTData] = useState({}); // equivalent of the above but for fcst data
+
   const [mapInstance, setMapInstance] = useState(null);
   const [lastUpdateCam, setLastUpdateCam] = useState(null);
   const [lastUpdateFCST, setLastUpdateFCST] = useState(null);
+
+  // State variables below are for user-selected states (dynamic based on their interation w UI), and then those needed for input to fetch API data
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
-  const [subdir, setSubdir] = useState('data_camlevel'); // this will be adjusted based on the selection of Context (this is not a toggle itself, but changed based on user toggle)
-  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical"
-  // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, and using these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
-  const [flagLive, setFlagLive] = useState(true);
+
+
+  const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical" XXUSERACTION
+  // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, can use these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
+  // const [flagLive, setFlagLive] = useState(true); // may need this if user goes back to live context -- check this
   const [flagFCST, setFlagFCST] = useState(false);
   const [flagHist, setFlagHist] = useState(false);
   // Need to set initial values so that the map loads correctly under the initialization of Live. By default in React, these initial state variables are set sequentially. We need them to be dynamic based on the time that the site is loaded, but they still need initial values. Without having in initial values (for example, if we wait for a useEffect to load based on the setDate state), the initial site load won't load. So we need the initial values to be functions (dynamic) of the current time, we need the initialized states to depend on selectedDate, as done below, and it works sequentially as needed. Note that we *also* have these setState functions evaluated in a useEffect to account for the case that the user clicks Forecast or Historical, and then *goes back* to Live.
-  const [selectedDateCamET, setSelectedDateCamET] = useState(new Date());  // here
-  const [selectedDateCam, setSelectedDateCam] = useState(convertToGMT(selectedDateCamET));
-  const [adjacentDaysLive, setAdjacentDaysLive]= useState(prevday_nextday(selectedDateCam));
-  const [selectedDateET, setSelectedDateET] = useState(new Date());  // here
-  const [selectedDate, setSelectedDate] = useState(convertToGMT(selectedDateET));  // Default to the current date and time bc default loading selection, setContext, is Live
-  const [roundedToHr, setRoundedToHr] = useState(roundTimeToHour(selectedDate));
-  const [stringRoundedToHr, setStringRoundedToHr] = useState(prepFileString(roundedToHr)); 
-  const [fileLiveOrHistHRRR, setFileLiveOrHistHRRR] =  useState(datestring_tofilenamestring(stringRoundedToHr)); 
+  const [selectedDateCamET, setSelectedDateCamET] = useState(new Date());  // XXX1 XXUSERACTION
+  const [selectedDateCam, setSelectedDateCam] = useState(convertToGMT(selectedDateCamET));//XXX2 XXinputFetchCam
+  const [adjacentDaysLive, setAdjacentDaysLive]= useState(prevday_nextday(selectedDateCam));//XXX3 XXinputFetchCam
+  const [adjacentDaysHist, setAdjacentDaysHist] = useState([]); //XXX 3-B XXinputFetchCam
+  const [selectedDateET, setSelectedDateET] = useState(new Date());  //XXX4 XXUSERACTION
+  const [fileLiveHRRR, setfileLiveHRRR] =  useState(prepFileString_live(new Date())); //XXX8 XXinputFetchHRRR
   // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
-  const [roundedToHrET, setRoundedToHrET] = useState(roundTimeToHour(selectedDateET));
-  const [forecastOptions, setForecastOptions] = useState([]); // State to hold date options
-  const [selectedForecastET, setSelectedForecastET] = useState('');  //here
-  const [selectedForecastETDate, setSelectedForecastETDate] = useState(''); 
-  const [selectedForecast, setSelectedForecast] = useState(''); // user selected forecast which is a string (which will need to then prepare the filename, see below)
-  const [fileForecast, setFileForecast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
-  const [selectedPastET, setSelectedPastET] = useState(''); // here
-  const [selectedPast, setSelectedPast] = useState(''); // user selected
-  const [adjacentDays, setAdjacentDays] = useState([]);
-  const [filePast, setFilePast] = useState(''); // for when *after* the use selects which forecast time based on dropdown
+  const [forecastOptions, setForecastOptions] = useState([]); //XXX10
+  const [selectedForecastET, setSelectedForecastET] = useState(''); //XXX11 XXUSERACTION based on user selection from dropdown. The remaining steps parse out time strings and create hrrr file name to request
+  const [selectedForecastETDate, setSelectedForecastETDate] = useState(''); //XXX12
+  const [selectedForecast, setSelectedForecast] = useState(''); //XXX13 selected forecast which is a string (which will need to then prepare the filename, see below)
+  const [fileForecast, setFileForecast] = useState(''); //XXX14  XXinputFetchHRRR
+  const [selectedPastET, setSelectedPastET] = useState(''); //XXX 1-B and 11-B (historical equivalent to forecast) XXUSERACTION
+  const [selectedPast, setSelectedPast] = useState(''); //XXX 2-B XXinputFetchCam
+  const [filePast, setFilePast] = useState(''); //XXX14-B XXinputFetchHRRR
+  const popupRef = useRef(null); // Store the popup instance
 
+  const [conditions, setConditions] = useState({
+    snow_severe: true,
+    snow: true,
+    wet: true,
+    dry: true,
+    poor_viz: true,
+    obs: true,
+  });
 
-
-  // const [level, setLevel] = useState(''); // need this extra
-  // these should be for historic only
-  // For the 
-  // const [autoRefresh, setAutoRefresh] = useState(true);
-  // const [current, setCurrent] = useState('')
-  // const [case1, setcase1] = useState('')
-  // const [fcst2hr, setfcst2hr] = useState('')
-  // const [fcst2hr, setfcst2hr] = useState('')
-
-  // console.log("initial print item")
-  // console.log(selectedDate)
-
-  // // Toggle handler for checkbox
-  // const handleToggleChange = () => {
-  //   setShowFCST(!showFCST);
-  // };
-
-  // const handleToggleChange = () => {
-  //   setShowdots(!showdots);
-  // };
-
-  // console.log("SELECTED DATE FOR HISTORICAL CHECK")
-  // console.log(selectedDate)
 
   // Return text for the dashboard title based on the user's selected case
   const getTitle = () => {
@@ -106,14 +90,7 @@ const Map = (props) => {
   // First: set up how to handle user interaction (dropdown of cases, or selection checkboxes of classes)
 
   // Set which conditions to map. Initially, only map the 4 main ones
-  const [conditions, setConditions] = useState({
-    snow_severe: true,
-    snow: true,
-    wet: true,
-    dry: true,
-    poor_viz: true,
-    obs: true,
-  });
+
 
   // Related to above, define this function to handle changes to the road surface condition check boxes based on user interaction on dashbaord
   const handleConditionChange = (event) => {
@@ -132,78 +109,64 @@ const Map = (props) => {
  
   };
 
-  // anytime the context changes, refresh to have certain constants reset (e.g. for Live view, both cams and everywhere should be toggled yes. For forecast view, cam data should be unchecked (greyed out even))
+  // Handle date change from DatePicker for historical 
+  const handleDateChange = (date) => {
+    setSelectedPastET(date);
+  };
+
+  // anytime the user-defined context changes (Live, Forecast, Historical) state variables should be updated accordingly -- e.g. 1) flags to display dots and/or forecast 2) if Live grab the current time (of refresh) and prepare inputs for fetching cam-level and hrrr-level inputs for Live display. 3) if Forecast, grab the current time which is used to populate dropdown list for user to then select the fcst of interest. 4) if Historical, display a calendar for user to select past date/time. 
   useEffect(() => {
     if (selectedContext === "Live") { 
       // set the subdir for the API to search for the most recent file for camlevel
-      // setSubdir("data_camlevel");
       // set the current datetime for the API to search for the best hrrr-level data. Note that upon loading, the default will use the current time, but need this in here in case the user switches from live, to historical, and then back to live (need to reset it to current time)
       setSelectedDateCamET(new Date());
       setSelectedDateCam(convertToGMT(selectedDateCamET));
       setAdjacentDaysLive(prevday_nextday(selectedDateCam));
       console.log("break 1 A");
-      // const now = new Date(); 
-      // console.log(now); 
+
       setSelectedDateET(new Date());
-      setSelectedDate(convertToGMT(selectedDateET));
-      // console.log(selectedDate) // move to log in useeffect to ensure we're seeing the updated value
+
       console.log("break 1 B");
       setShowdots(true);
       setShowFCST(true);
       console.log("break 1 C");
-      setFlagLive(true);
-      // setFlagFCST(false);
-      // setFlagHist(false);
+
       console.log("break 1 D");
-      setRoundedToHr(roundTimeToHour(selectedDate));
-      // console.log(roundedToHr);
+
       console.log("break 1 E");
-      setStringRoundedToHr(prepFileString(roundedToHr)); 
-      // console.log(stringRoundedToHr);
+
       console.log("break 1 F");
-      setFileLiveOrHistHRRR(datestring_tofilenamestring(stringRoundedToHr));
-      // console.log(fileLiveOrHistHRRR) ;
+
+      setfileLiveHRRR(prepFileString_live(selectedDateET));
       console.log("break 1 G");
-      // console.log("ran initial useeffect w ifs, Live")
-      // console.log(selectedDate)
+      // in case user switches from Live to fcst to back to Live, for example
+      setFlagFCST(false);
+      setFlagHist(false);
+
 
     } else if (selectedContext === "Historical") { // if the user selects historical or forecast, they will select the datetime they want and it will be set that way
       console.log("break 3 A")
-      setSubdir("data_hrrrlevel");
       setShowdots(true);
       setShowFCST(true);
       console.log("break 3 B")
-      setFlagLive(false);
+      // setFlagLive(false);
       setFlagFCST(false);
       setFlagHist(true);
       console.log("break 3 C")
-      // backfill based on user selection NEED TO DO
     } else if (selectedContext === "Forecast") {
-      // setSubdir("data_hrrrlevel");
       console.log("break 2 A");
       setShowdots(false);
       setShowFCST(true);
       console.log("break 2 B");
-      setFlagLive(false);
+      // setFlagLive(false);
       setFlagFCST(true);
       setFlagHist(false);
       console.log("break 2 C");
-      // const now_fcst = new Date(); // KS check this date stuff, why updating weird times not seem to be based on refresh (can update one second apart and it will be like 30 sec diff, or vice versa.)
       setSelectedDateET(new Date());
-      // console.log(selectedDateET)
-      // setSelectedDate(selectedDateET);
-      // console.log(selectedDate); see comment in Live, moved to useeffect
-      // console.log("break 2 D");
-      setRoundedToHrET(roundTimeToHour(selectedDateET));
-      // console.log(roundedToHr);
       console.log("break 2 E");
-      setForecastOptions(prepListForecastOptions(roundedToHrET));
+      setForecastOptions(prepListForecastOptions(selectedDateET)); 
       // console.log(forecastOptions)
       console.log("break 2 F");
-
-      // set the initial forecast selection 
-      // setSelectedForecast(forecastOptions[0]);
-      // console.log("break 2 GG");
     }
   }, [selectedContext]); 
 
@@ -213,41 +176,16 @@ const Map = (props) => {
     console.log(selectedDateET)
   }, [selectedDateET]);
 
-  useEffect (() => {
-    console.log("TYPE OF SELECTED DATE")
-    console.log(typeof selectedDate)
-  }, [selectedDate]);
 
   useEffect (() => {
-    console.log("selectedDate")
-    console.log(selectedDate)
-  }, [selectedDate]);
-
-  useEffect (() => {
-    console.log("roundedToHr:")
-    console.log(roundedToHr)
-  }, [roundedToHr]); 
-
-  useEffect (() => {
-    console.log("roundedToHrET:")
-    console.log(roundedToHrET)
-  }, [roundedToHrET]); 
-
-  useEffect (() => {
-    console.log("stringRoundedToHr:")
-    console.log(stringRoundedToHr)
-  }, [stringRoundedToHr]); 
-
-
-  useEffect (() => {
-    console.log("fileLiveOrHistHRRR:")
-    console.log(fileLiveOrHistHRRR)
-  }, [fileLiveOrHistHRRR]); 
+    console.log("fileLiveHRRR:")
+    console.log(fileLiveHRRR)
+  }, [fileLiveHRRR]); 
         
-  useEffect (() => {
-    console.log("selectedDate:")
-    console.log(selectedDate)
-  }, [selectedDate]); 
+  // useEffect (() => {
+  //   console.log("selectedDate:")
+  //   console.log(selectedDate)
+  // }, [selectedDate]); 
 
   useEffect (() => {
     console.log("forecastOptions:")
@@ -277,64 +215,68 @@ const Map = (props) => {
   }, [selectedForecastET]); 
 
 
+  // Handle dropdown for forecast
+  const handleForecasetChange = (e) => {
+    const userforecast = e.target.value;
+    setSelectedForecastET(userforecast); // change user context (see where this is needed)
+    // also change subdir
+    // maybe better to move these under a useeffect although can do similar things?
+  };
 
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("upon inital load of selected forecast:")
-      console.log(selectedForecast)
-    }
-  }, [selectedForecast]) ;
-
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("parse the date from the user's selected fcst date")
-      setSelectedForecastETDate(prepDateObject_fcst(selectedForecastET));
-    }
-  }, [selectedForecastET]) ;
-  // selectefForecastETDate
-  
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("make sure new ET date loaded")
-      console.log(selectedForecastETDate)
-    }
-  }, [selectedForecastETDate]) ;
-
-  // old way
   // useEffect(() => {
   //   if (flagFCST === true) { 
-  //     console.log("running useEffect for Forecast-specific user selection")
-  //     setFileForecast(prepFileString_fcst(selectedForecast));
-  //     // console.log(fileForecast) // needs to be outside useeffect to make sure updated
-  //     console.log("break 2 G");
+  //     console.log("upon inital load of selected forecast:")
+  //     console.log(selectedForecast)
   //   }
   // }, [selectedForecast]) ;
 
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("prepare fcst file name part 1")
-      setSelectedForecast(convertToGMT(selectedForecastETDate));
-      console.log("break 2 G");
-    }
-  }, [selectedForecastETDate]) ;
+
+  // // fcst1
+  // useEffect(() => {
+  //   if (flagFCST === true) { 
+  //     console.log("parse the date from the user's selected fcst date")
+  //     console.log("user selection string")
+  //     console.log(selectedForecastET)
+  //     setSelectedForecastETDate(prepDateObject_fcst(selectedForecastET));
+  //   }
+  // }, [selectedForecastET]) ;
+  // // selectefForecastETDate
+  
+  // // just logging
+  // useEffect(() => {
+  //   if (flagFCST === true) { 
+  //     console.log("parsed out date from user selection")
+  //     console.log(selectedForecastETDate)
+  //   }
+  // }, [selectedForecastETDate]) ;
+
+
+  // //fcst 2
+  // useEffect(() => {
+  //   if (flagFCST === true) { 
+  //     console.log("prepare fcst file name part 1")
+  //     setSelectedForecast(convertToGMT(selectedForecastETDate));
+  //     console.log("break 2 G");
+  //   }
+  // }, [selectedForecastETDate]) ;
 
   useEffect(() => {
     if (flagFCST === true) { 
-      console.log("prepare fcst file name part 2")
-      setFileForecast(datestring_tofilenamestring(prepFileString(selectedForecast)))
+      // old way before refactor
+      // console.log("prepare fcst file name part 2")
+      // console.log(typeof selectedForecast)
+      // console.log("NOTE! Below, it will say EST, but the time conversion was correctly converted to GMT... the designation of saying EST does not matter for the next steps which is to parse out the file name")
+      // console.log(selectedForecast)
+      // console.log("rounded to hour, which will then be inpt to find fcst file")
+      // console.log(prepDateString(selectedForecast))
+      // // doing all in one step below but logging each piece above
+      // setFileForecast(prep_tofilenamestring(prepDateString(selectedForecast)))
+      setFileForecast(prepFileString_fcst(selectedForecastET))
+
     }
-  }, [selectedForecast]) ;
+  }, [selectedForecastET]) ;
 
 
-
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("GMT maint selected fcst")
-      console.log(selectedForecast)
-      console.log(prepFileString(selectedForecast))
-      console.log(datestring_tofilenamestring(prepFileString(selectedForecast)))
-    }
-  }, [selectedForecast]) ;
 
   useEffect(() => {
     if (flagFCST === true) { 
@@ -343,21 +285,6 @@ const Map = (props) => {
     }
   }, [fileForecast]) ;
 
-  useEffect(() => {
-    if (flagFCST === true) { 
-      console.log("file forecast read")
-      console.log(fileForecast)
-    }
-  }, [fileForecast]) ;
-  
-
-  useEffect(() => {
-    if (flagFCST === true) {  // only care to run this if flagFCST
-      console.log("Actual check of selected")
-      console.log(fileForecast)
-    } 
-  }
-  ), [fileForecast]; // KS: why is this loading twice? Can see it logged, It's like it's printing the last one and then this new selection one?
 
   useEffect(() => {
     if (flagHist === true) { 
@@ -368,7 +295,7 @@ const Map = (props) => {
 
   useEffect(() => {
     if (flagHist === true) { 
-      setFilePast(datestring_tofilenamestring(prepFileString(selectedPast)));
+      setFilePast(prep_tofilenamestring(prepDateString(selectedPast)));
       console.log("break for hist");
     }
   }, [selectedPast]) ;
@@ -402,16 +329,21 @@ const Map = (props) => {
     }
   }, [filePast]) ;
 
+  // hereee
+  useEffect(() => {
+    console.log("CAM UPDATE TIME RECEIVED:")
+    console.log(lastUpdateCam)
+  }, [lastUpdateCam]) ;
 
-  // Handle date change from DatePçicker
-  const handleDateChange = (date) => {
-    setSelectedPastET(date);
-  };
+  useEffect(() => {
+    console.log("FORECAST UPDATE TIME RECEIVED:")
+    console.log(lastUpdateFCST)
+  }, [lastUpdateFCST]) ;
 
   // prep the other dir paths for previous and next days in case edge case of camlevel date (like if request is for midnight on 11/10, maybe the closest file is 11:58 on 11/9)
   useEffect(() => {
     if (flagHist === true) { 
-      setAdjacentDays(prevday_nextday(selectedPast))
+      setAdjacentDaysHist(prevday_nextday(selectedPast))
     }
   }, [selectedPast]) ;
 
@@ -424,10 +356,10 @@ const Map = (props) => {
   // check that it worked
   useEffect(() => {
     if (flagHist === true) { 
-      console.log("adjacent days")
-      console.log(adjacentDays)
+      console.log("adjacent days Hist")
+      console.log(adjacentDaysHist)
     }
-  }, [adjacentDays]) ;
+  }, [adjacentDaysHist]) ;
 
   useEffect(() => {
     if (flagHist === true) { 
@@ -438,29 +370,12 @@ const Map = (props) => {
 
 
 
-  // Handle dropdown for forecast
-  const handleForecasetChange = (e) => {
-    const userforecast = e.target.value;
-    setSelectedForecastET(userforecast); // change user context (see where this is needed)
-    // also change subdir
-    // maybe better to move these under a useeffect although can do similar things?
-  };
-
-  
-
   // Second: Load in the data
 
-  // Define this function that, when called on (see useEffect later) will load the corresponding data based on user selection
+  // Define helper function to fect data from API. When called on (see useEffect later) will load the corresponding data based on user selection
   const fetchData = async (inputcontext, inputlevel, inputfilestring, inputdirsadjacent, inputcamdate) => {
     try {
-      // console.log("beginning fetch")
-      // // console.log(dictinput)
-      // console.log(`${inputcontext}, ${inputlevel}, ${inputfilestring}`)
-      // console.log("try sending two params")
-      // const p2 = 'cam';
-      // // console.log(`/data?param1=${selectedParam1}&param2=${selectedParam2}`)
-      // console.log("fetch query for API")
-      // console.log(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/data?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}`)
+
       const response = await fetch(`https://xcitelab.org/dot-api?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}&param4=${inputdirsadjacent}&param5=${inputcamdate}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
@@ -468,9 +383,6 @@ const Map = (props) => {
           'Content-Type': 'application/json'
         }
       })
-      // .then(async (res)=> await // console.log('res',res.json()));
-      // console.log("got through await fetch")
-      // // console.log(response.status)
 
       if (!response.ok) {
         console.error("Failed to fetch data:", response.statusText);
@@ -478,42 +390,19 @@ const Map = (props) => {
       }
      
       const apiResponse = await response.json();
-      // console.log('API Response:', apiResponse); // Log API response
-      // console.log("through here????")
 
-      // console.log('try printing in map when pulling data from api');
-      // console.log('JSON Data CAMLEVEL:', apiResponse.data);
-      // console.log('TIME OF CAM DATA UPDATE:', apiResponse.time);
-      // setData(apiResponse.data); // Update data state
-      // setLastUpdateCam(apiResponse.time)
-      // need to also return time
-
-      return apiResponse.data
+      return {
+        data: apiResponse.data, // Assuming `data` is part of the API response
+        time: apiResponse.time  // Assuming `time` is part of the API response
+      };
 
     } catch (error) {
       console.error('API Error:', error.message);
     }
   };
+
   // Load the data
   // Do this by calling the fetchdata function when selectedDictionary changes (based on user intraction), and do this by using the built in React useEffect feature
-
-  // const runFetch = async () => {
-  //   // console.log('Component rendered, fetch should occur');
-  //   // console.log('selectedDictionary:', selectedDictionary);
-    
-  //   const dataloaded_camlevel = await fetchData(selectedDictionary);
-  //   setData(dataloaded_camlevel);
-  // };
-
-  // clean up eventually bc repetitive code in here and the Forecast map and the Historical map after needed to split up dependecies into multiple pieces
-  // useEffect(() => {
-  //   console.log("complete resturcture");
-  //   // const dataloaded_camlevel = await ;
-  //   setData(fetchData(selectedContext, "data_camlevel", "irrelev.js" ,['2024/11/20', '2024/11/21', '2024/11/22'],selectedDateCam));
-  //   // const dataloaded_hrrrlevel = await ; //"data_hrrrlevel"
-  //   setFCSTData(fetchData(selectedContext, "data_hrrrlevel", fileLiveOrHistHRRR, [], ''));
-  // }, []); // dont put flagLive in here! Bc it will render before any of the other stuff does. 
-
 
   useEffect(() => {
     console.log("upon initial render");
@@ -522,7 +411,7 @@ const Map = (props) => {
     const fetchDataAsync_init = async () => {
       try {
         // Fetch and set camlevel data
-        const dataloaded_camlevel = await fetchData(
+        const resultfetch = await fetchData(
           selectedContext, 
           "data_camlevel",  //"data_camlevel/allonedir", 
           "irrelev.js", 
@@ -530,17 +419,25 @@ const Map = (props) => {
           selectedDateCam,
 
         );
-        setData(dataloaded_camlevel);
+
+        // this is where the main data from API fetch is pulled in
+        setData(resultfetch.data); // the dictionary of model information from the file of interest pulled is in .data
+        setLastUpdateCam(resultfetchHRRR.time); // the selected file time from the file of interest pulled is in .time
   
         // Fetch and set hrrrlevel data
-        const dataloaded_hrrrlevel = await fetchData(
+        const resultfetchHRRR = await fetchData(
           selectedContext, 
           "data_hrrrlevel", 
-          fileLiveOrHistHRRR, 
+          fileLiveHRRR, 
           [], 
           ''
         );
-        setFCSTData(dataloaded_hrrrlevel);
+
+        // this is where the main data from API fetch is pulled in
+        setFCSTData(resultfetchHRRR.data); // // the dictionary of model information from the file of interest pulled is in .data
+        setLastUpdateFCST(resultfetchHRRR.time); // the selected file time from the file of interest pulled is in .time
+
+        console.log(lastUpdateFCST)
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -554,27 +451,41 @@ const Map = (props) => {
   useEffect(() => {
     if (selectedContext == "Live") {
       console.log("upon context change-LIVE");
+      console.log(selectedContext, "data_camlevel", "irrelev.js", adjacentDaysLive, selectedDateCam)
+      
       const fetchDataAsync_live = async () => {
         try {
           // Fetch and set camlevel data
-          const dataloaded_camlevel = await fetchData(
+          const resultfetch2 = await fetchData(
             selectedContext, 
             "data_camlevel",  //"data_camlevel/allonedir", 
             "irrelev.js", 
             adjacentDaysLive, 
             selectedDateCam
           );
-          setData(dataloaded_camlevel);
+          // const dataloaded_camlevel = resultfetch.data;   // Access the data
+          // const hrrrUpdateTime = resultfetch.time;
+          setData(resultfetch2.data);
+          setLastUpdateCam(resultfetch2.time);
+
     
           // Fetch and set hrrrlevel data
-          const dataloaded_hrrrlevel = await fetchData(
+          console.log(selectedContext, "data_hrrrlevel", fileLiveHRRR, [], '')
+          const resultfetchHRRR2 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 
-            fileLiveOrHistHRRR, 
+            fileLiveHRRR, 
             [], 
             ''
           );
-          setFCSTData(dataloaded_hrrrlevel);
+          // const dataloaded_hrrrlevel = resultfetch.data;   // Access the data
+          // const hrrrUpdateTime = resultfetch.time;
+  
+          setFCSTData(resultfetchHRRR2.data);
+          setLastUpdateFCST(resultfetchHRRR2.time);
+
+          console.log()
+
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -595,14 +506,15 @@ const Map = (props) => {
           // dont need cam level at all for fcst
     
           // Fetch and set hrrrlevel data
-          const dataloaded_hrrrlevel = await fetchData(
+          const resultfetchHRRR3 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 
             fileForecast, 
             [], 
             ''
           );
-          setFCSTData(dataloaded_hrrrlevel);
+          setFCSTData(resultfetchHRRR3.data);
+          setLastUpdateFCST(resultfetchHRRR3.time);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -619,24 +531,26 @@ const Map = (props) => {
       const fetchDataAsync_hist = async () => {
         try {
           // Fetch and set camlevel data
-          const dataloaded_camlevel = await fetchData(
+          const resultfetch4 = await fetchData(
             selectedContext, 
             "data_camlevel", 
             "irrelev.js", 
-            adjacentDays, 
+            adjacentDaysHist, 
             selectedPast
           );
-          setData(dataloaded_camlevel);
+          setData(resultfetch4.data);
+          setLastUpdateCam(resultfetch4.time);
     
           // Fetch and set hrrrlevel data
-          const dataloaded_hrrrlevel = await fetchData(
+          const resultfetchHRRR4 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 
             filePast, 
             [], 
             ''
           );
-          setFCSTData(dataloaded_hrrrlevel);
+          setFCSTData(resultfetchHRRR4.data);
+          setLastUpdateFCST(resultfetchHRRR4.time);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -712,6 +626,8 @@ const Map = (props) => {
 
   // Define helper functions to plot fcst color gradients
   // first helper function will convert the dataFCST dictionary to GeoJSON format for easy Map plotting
+  // this is where the lat and lon and model output data (in properties) are parsed out before adding to map
+
   const convertDataToGeoJSON = (datatoconvert) => {
     return {
       type: 'FeatureCollection',
@@ -724,7 +640,10 @@ const Map = (props) => {
             coordinates: [lon, lat] // Mapbox expects [lon, lat]
           },
           properties: {
-            color: properties.color || "#000000" // Default color if missing
+            color: properties.color || "#000000", // Default color if missing
+            confidence: properties.confidence || "N/A", // Add another property with a default value
+            modelpred: properties.final_model_pred || "N/A"
+
           }
         };
       })
@@ -750,6 +669,9 @@ const Map = (props) => {
         },
         properties: {
           color: data[key].color,
+          confidence: data[key].confidence || "N/A", // Add another property with a default value
+          modelpred: data[key].final_model_pred || "N/A",
+          imagePath: data[key].img_model || "N/A"
         },
       };
     });
@@ -785,161 +707,193 @@ const Map = (props) => {
 
 
   // this builds the map
+
   useEffect(() => {
-
-    if (!mapInstance) return; // Ensure mapInstance is ready
-
-    // convert into array of conditions 
-    const conditionsArray = makeArray(conditions)
-
-
-    // Convert FCSTdata to GeoJSON
-    const filteredData_hrrr = filterDataByConditions(FCSTdata, conditionsArray);
-
-    // Step 2: Reorder the filtered data based on the specified priority
-    const orderedData_hrrr = reorderDataByPriority(filteredData_hrrr,["poor_viz", , "dry", "wet", "snow","snow_severe"]);
-
-    const geoJSONData = convertDataToGeoJSON(orderedData_hrrr); //FCSTdata
+    if (!mapInstance) return;
   
-
-    // **1. Manage forecast gradient (FCST) source and layer**
+    const conditionsArray = makeArray(conditions);
+  
+    // Process forecast data
+    const filteredData_hrrr = filterDataByConditions(FCSTdata, conditionsArray);
+    const orderedData_hrrr = reorderDataByPriority(filteredData_hrrr, ["poor_viz", "dry", "wet", "snow", "snow_severe"]);
+    const geoJSONData = convertDataToGeoJSON(orderedData_hrrr);
+  
+    // Process cam data
+    const filteredData = filterDataByConditions(data, conditionsArray);
+    const orderedData = reorderDataByPriority(filteredData, ["obs", "poor_viz", "dry", "wet", "snow", "snow_severe"]);
+    const dotsData = convertDataToDots(orderedData);
+  
+    // Manage FCST layer
     if (showFCST) {
       if (mapInstance.getSource('points')) {
-        // Update the data if the source already exists
         mapInstance.getSource('points').setData(geoJSONData);
       } else {
-        // Create the source and layer if they don't exist
-        mapInstance.addSource('points', {
-          type: 'geojson',
-          data: geoJSONData,
-        });
-
+        mapInstance.addSource('points', { type: 'geojson', data: geoJSONData });
         mapInstance.addLayer({
           id: 'point-layer',
           type: 'circle',
           source: 'points',
           paint: {
             'circle-color': ['get', 'color'],
-            'circle-radius': 30,
-            'circle-opacity': [
-              'interpolate', 
-              ['linear'],
-              ['zoom'],
-              7, 0.025,
-              12,.9
-            ],
-            'circle-blur': 1,
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 10, 12, 70],
+            'circle-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.08, 9, 0.1, 10, 0.2, 12, 0.3],
+            'circle-blur': 0.5,
           },
         });
       }
     } else {
-      // Remove the FCST layer if it exists and showFCST is false
-      if (mapInstance.getLayer('point-layer')) {
-        mapInstance.removeLayer('point-layer');
-      } // point-layer here!
-      if (mapInstance.getSource('points')) {
-        mapInstance.removeSource('points');
-      }
+      if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
+      if (mapInstance.getSource('points')) mapInstance.removeSource('points');
     }
-      
-
-    // 2 manage adding cam level dots
-
-    // console.log("check what is data")
-    // console.log(data)
-
-
-
-    // console.log("check what is conditions (these are user-selected")
-    // console.log(conditions)
-    // Filter and order the data
-    // Step 1: Filter the data based on selected conditions
-    const filteredData = filterDataByConditions(data, conditionsArray);
-
-    // Step 2: Reorder the filtered data based on the specified priority
-    const orderedData = reorderDataByPriority(filteredData,["obs","poor_viz", , "dry", "wet", "snow","snow_severe"]);
-
-    // const filteredData = filterDataByConditions(data, conditions);
-    // const orderedData = orderDataByPriority(filteredData, ["snow_severe", "snow", "wet", "dry", "poor_viz", "obs"]);
-    
-
-    const dotsData = convertDataToDots(orderedData); //data
-
-
+  
+    // Manage cam dots layer
     if (showdots) {
-      // console.log("DOTS DATA!!")
-      // console.log(dotsData)
-
       if (mapInstance.getSource('dots')) {
-        mapInstance.getSource('dots').setData({
-          type: 'FeatureCollection',
-          features: dotsData,
-        });
+        mapInstance.getSource('dots').setData({ type: 'FeatureCollection', features: dotsData });
       } else {
-        mapInstance.addSource('dots', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: dotsData,
-          },
-        });
-    
+        mapInstance.addSource('dots', { type: 'geojson', data: { type: 'FeatureCollection', features: dotsData } });
         mapInstance.addLayer({
           id: 'dots-layer',
           type: 'circle',
           source: 'dots',
-          paint: {
-            'circle-color': ['get', 'color'],
-            'circle-radius': 5, // Adjust radius as needed
-            'circle-opacity': 1, // Adjust opacity as needed
-          },
-          // Ensure dots are on top of other layers
-          'before': 'fill-layer', // Adjust index as needed
+          paint: { 'circle-color': ['get', 'color'], 'circle-radius': 5, 'circle-opacity': 1 },
         });
       }
-    // Check if the layers have been added in the correct order
+    } else {
+      if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
+      if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
+    }
+  
+    // Ensure layers are in the correct order
     const layers = mapInstance.getStyle().layers;
-    const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer'); // point-layer here!
+    const fcstLayerIndex = layers.findIndex(layer => layer.id === 'point-layer');
     const dotsLayerIndex = layers.findIndex(layer => layer.id === 'dots-layer');
-
-    // If the dots layer is below the FCST layer, we move it above
     if (dotsLayerIndex < fcstLayerIndex) {
-      mapInstance.moveLayer( 'point-layer','dots-layer'); //point-layer first one here
+      mapInstance.moveLayer('point-layer', 'dots-layer');
     }
-    
-  }
-
-
-  // Cleanup function
-  return () => {
-    if (mapInstance) {
-      if (mapInstance.getLayer('point-layer')) { //'point-layer'
-        mapInstance.removeLayer('point-layer'); //'point-layer'
+  
+    return () => {
+      if (mapInstance) {
+        if (mapInstance.getLayer('point-layer')) mapInstance.removeLayer('point-layer');
+        if (mapInstance.getSource('points')) mapInstance.removeSource('points');
+        if (mapInstance.getLayer('dots-layer')) mapInstance.removeLayer('dots-layer');
+        if (mapInstance.getSource('dots')) mapInstance.removeSource('dots');
       }
-      if (mapInstance.getSource('points')) {
-        mapInstance.removeSource('points');
+    };
+  
+  }, [mapInstance, FCSTdata, data, conditions, showdots, showFCST]);
+  
+  // Separate useEffect for handling clicks
+  // Separate useEffect for handling clicks
+  useEffect(() => {
+    if (!mapInstance) return;
+  
+    const handleMapClick = async (event) => {
+      // Remove any existing popup before creating a new one
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
       }
-      if (mapInstance.getLayer('dots-layer')) {
-        mapInstance.removeLayer('dots-layer');
-      }
-      if (mapInstance.getSource('dots')) {
-        mapInstance.removeSource('dots');
-      }
-    }
-  };
-  }, [mapInstance, FCSTdata, camdata, data, conditions, showdots, showFCST]); // Re-run when any of these data dependencies change
+  
+      let activeLayers = [];
+      if (showFCST) activeLayers.push('point-layer');
+      if (showdots) activeLayers.push('dots-layer');
+  
+      if (activeLayers.length === 0) return;
+  
+      const features = mapInstance.queryRenderedFeatures(event.point, {
+        layers: activeLayers,
+      });
+  
+      if (features.length > 0) {
+        const clickedFeature = features[0];
+        const confidence = clickedFeature.properties.confidence || 'N/A';
+        const modelpred = clickedFeature.properties.modelpred || 'N/A';
+        const imagePath = clickedFeature.properties.imagePath || ''; // Ensure imagePath is handled safely
 
-  // // console.log("log selectedDictionar")
-  // // console.log(selectedDictionary)
-  // console.log("log conditions")
-  // console.log(conditions)
+        console.log("confidence")
+        console.log(confidence)
 
+        console.log("modelpred")
+        console.log(modelpred)
+
+        console.log("imagePath")
+        console.log(imagePath)
+  
+        let popupContent = `<strong>Confidence:</strong> ${confidence}<br><strong>Model Prediction:</strong> ${modelpred}`;
+  
+        // Add image only if showdots is true and imagePath is valid
+        // if (showdots && imagePath) {
+        //   popupContent += `<br><img src="${imagePath}" alt="Feature Image" 
+        //                    style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+        // }
+
+        if (showdots && imagePath) {
+          // try {
+          //   // Call API to get the actual image URL
+          //   const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/get-image?path=${encodeURIComponent(imagePath)}`);
+          //   const data = await response.json();
+
+          //   console.log("API Response For Image:", data);  // Add this for debugging
+
+        
+          //   if (data.imageUrl) {
+          //     popupContent += `<br><img src="${data.imageUrl}" alt="Feature Image" 
+          //                       style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+          //   }
+          // } catch (error) {
+          //   console.error("Error fetching image:", error);
+          // }
+          try {
+            const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/get-image?path=${encodeURIComponent(imagePath)}`);
+            
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+          
+            const blob = await response.blob();  // Convert response to Blob
+            const imageUrl = URL.createObjectURL(blob);  // Create local URL for image
+          
+            console.log("Generated image URL:", imageUrl);  // Debugging
+          
+            popupContent += `<br><img src="${imageUrl}" alt="Feature Image" 
+                              style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
+          
+          } catch (error) {
+            console.error("Error fetching image:", error);
+          }
+        }
+  
+        popupRef.current = new mapboxgl.Popup()
+          .setLngLat(event.lngLat)
+          .setHTML(popupContent)
+          .addTo(mapInstance);
+  
+        setTimeout(() => {
+          document.querySelectorAll('.mapboxgl-popup-close-button').forEach(btn => {
+            btn.removeAttribute('aria-hidden');
+          });
+        }, 0);
+      }
+    };
+  
+    mapInstance.on('click', handleMapClick);
+  
+    return () => {
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
+      mapInstance.off('click', handleMapClick);
+    };
+  
+  }, [mapInstance, showdots, showFCST]);
+
+  
   return (
 
 
     <div style={{ marginTop: '0px', padding: '0px' }}>
       <h1 style={{ margin:'0',paddingBottom: '0px'}}>Road surface condition detection</h1>
-      <p style={{ fontSize: '18px', fontStyle: 'italic' ,margin: '0', paddingTop: '0px', paddingBottom: '20px'}} >Detected by machine-learning models</p>
+      <p style={{ fontSize: '18px', fontStyle: 'italic' ,margin: '0', paddingTop: '0px', paddingBottom: '20px'}} >Detected by machine-learning models (AI)</p>
       {/* <h2>{`${getTitle()}`}</h2> */}
       {/* <h3>{`Updated at:`}</h3> */}
       {/* <h3>{`Colo`}</h3> */}
@@ -954,7 +908,7 @@ const Map = (props) => {
 
     
 
-      <h2 style={{ margin: '0'}}> Choose the time to display <Tooltip content="Select whether to display current conditions (present/live), forecasted conditions (future), or historical conditions (from past events). The current conditions representthe real-time perspective with the most recently updated data, which is relevent for an up-to-date picture of the road surface conditions. The forecasted conditions represent future conditions, for which there are are no camera images to make predictions at the NYSDOT camera level. The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
+      <h2 style={{ margin: '0'}}> Choose the time to display <Tooltip content="Select whether to display current conditions (present/live), forecasted conditions (future), or historical conditions (from past events). The current conditions represent the real-time perspective with the most recently updated data, which is relevent for an up-to-date picture of the road surface conditions. The forecasted conditions represent future conditions, for which there are are no camera images to make predictions at the NYSDOT camera level. The Historical data option is to view past data, viewing the conditions from a case study perspective, which uses archived data." /></h2>
       {/* <p> Choose whether to display </p> */}
       {/* <p style={{ margin: '0', paddingTop: '10px', paddingLeft: '20px'}}>Display live data </p>
       <p style={{ marginTop: '0', marginBottom: '10px'}}>Display historical data (SELECT DATE) </p> */}
@@ -996,7 +950,10 @@ const Map = (props) => {
               onChange={handleDateChange}
               showTimeSelect
               timeIntervals={60} // Time increments of 5 minutes
-              minDate={new Date('2024-01-01T00:00:00')} // Start date: Jan 1st, 2024
+              minDate={new Date('2025-01-04T16:00:00')} // '2025-01-04T16:00:00' Start date: Jan 1st, 2024 HERE! FOR ADJUSTINGG HISTROICAL DATES!
+              maxDate={new Date('2025-01-06T23:00:00')} // '2025-01-06T23:00:00' selectedDateET
+              // minTime={new Date('2024-12-19T00:00:00').setHours(12, 0, 0)} // Earliest time: 8:00 AM
+              // maxTime={new Date('2024-12-19T00:00:00').setHours(23, 0, 0)} // Latest time: 5:00 PM
               dateFormat="Pp" // Date format: MM/DD/YYYY HH:MM
               timeCaption="Time"
               timeFormat="HH:mm"
@@ -1133,6 +1090,15 @@ const Map = (props) => {
         </ul>
       </div>
       <h2 style={{ margin: '0', padding: '0'}}>{`Displaying ${getTitle()}`}</h2>
+{/*       
+      <div>
+          {(showdots) && (
+              <p style={{ margin: '0', padding: '0' }}>{`Camera locations for: ${lastUpdateCam}`}</p>
+          )}
+          {(showFCST) && (
+              <p style={{ margin: '0', padding: '0' }}>{`All locations (shading) for: ${lastUpdateFCST}`}</p>
+          )}
+      </div> */}
       
       <div
         ref={mapContainer}

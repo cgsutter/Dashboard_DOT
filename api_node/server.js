@@ -5,6 +5,10 @@ const port = 3009;
 const path = require('path');
 const fs = require('fs');
 
+// notes 3/3
+// difference between this version and development (main branch) version is just the app.get('/dot-api', (req, res) => { AS OPPOSED TO app.get('/data', (req, res) => {
+// Need to add in the get camera API, but that may be another set up?
+
 // pushing change to production git branch
 // Function to get the last modified date of a file
 function getLastModifiedDate(filePath) {
@@ -34,6 +38,35 @@ function getMostRecentFile(dirPath) {
 
   return files.length > 0 ? files[0].file : null;
 }
+
+// // EDIT HERE 3/3 COME BACK AND SET THIS UP
+// app.get("/get-image", (req, res) => {
+//   console.log("Entering /get-image");
+
+//   const imagePath = req.query.path; // Local image path from UI
+//   if (!imagePath) {
+//     return res.status(400).json({ error: "No image path provided" });
+//   }
+
+//   // Extract filename from the full path
+//   // const filename = path.basename(imagePath);
+
+//   // Assuming images are stored in a known directory
+//   // const imageDir = "/your/local/image/directory"; // <--- CHANGE THIS
+//   // const filePath = path.join(imageDir, filename);
+
+//   console.log("Looking for file:", imagePath);
+
+//   // Check if the file exists
+//   if (!fs.existsSync(imagePath)) {
+//     console.log("File not found:", imagePath);
+//     return res.status(404).json({ error: "Image not found" });
+//   }
+
+//   // Send the image file as a response
+//   res.sendFile(imagePath);
+// });
+
 
 // for historical, find the file that has closest modification time to the requested user date time, and consider looking between 3 directories
 function findClosestFile(parentDir, dirs, targetDate) {
@@ -210,6 +243,120 @@ function findFirstFileWithSubstring(directory, searchString) {
   //   return res.status(400).json({ message: 'File name is required' });
   // }
 
+
+
+// ADDED FROM HERE DOWN 3/3
+function convertToEST(filePath) {
+  // Step 1: Extract the date and hour from the file path
+  const regex = /\/(\d{4})\/(\d{2})\/(\d{2})\/F_V(\d{8})_(\d{2})_/;
+  const match = filePath.match(regex);
+
+  if (match) {
+    const year = match[1];
+    const month = match[2];
+    const day = match[3];
+    const hour = match[5];
+
+    // Step 2: Create a Date object in UTC
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour));
+    console.log(1);
+    console.log(utcDate);
+
+    // Step 3: Convert the date to EST (UTC - 5)
+    // Using Intl.DateTimeFormat to display the date in EST
+    const estDate = new Date(utcDate.getTime() - (5 * 60 * 60 * 1000)); // UTC - 5 hours for EST
+    console.log(2);
+    console.log(estDate);
+    console.log(typeof estDate);
+    
+    // Step 4: Format it as a string
+    const options = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric', 
+      hour: 'numeric', 
+      minute: 'numeric', 
+      second: 'numeric', 
+      hour12: false, 
+      timeZone: 'America/New_York'
+    };
+
+    console.log(3);
+    const time3 = estDate.toLocaleString('en-US', options);
+    console.log(time3)
+    
+    return estDate;
+  }
+
+  return null;  // Return null if the regex doesn't match
+}
+
+// new 12/20
+function parseAndConvertToEST(inputString) {
+  // Define a function to convert UTC date to EST
+  function convertToEST(utcDate) {
+      const options = {
+          timeZone: 'America/New_York',
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true
+      };
+      return new Intl.DateTimeFormat('en-US', options).format(utcDate);
+  }
+
+  let regexC = /C_(\d{4})(\d{2})(\d{2})_(\d{2})_(\d{2})/; // Regex for C_ type format
+  let regexF = /F_V(\d{4})(\d{2})(\d{2})_(\d{2})/;       // Regex for F_ type format
+
+  let matchC = inputString.match(regexC);
+  let matchF = inputString.match(regexF);
+
+  if (matchC) {
+      // Extract date components for C_ format
+      let year = matchC[1];
+      let month = matchC[2] - 1; // Month is 0-indexed in JavaScript
+      let day = matchC[3];
+      let hour = matchC[4];
+      let minute = matchC[5];
+
+      // Create a UTC date
+      let utcDate = new Date(Date.UTC(year, month, day, hour, minute));
+
+      // Convert to EST and return
+      return convertToEST(utcDate);
+  } else if (matchF) {
+      // Extract date components for F_ format
+      let year = matchF[1];
+      let month = matchF[2] - 1; // Month is 0-indexed in JavaScript
+      let day = matchF[3];
+      let hour = matchF[4];
+
+      // Create a UTC date
+      let utcDate = new Date(Date.UTC(year, month, day, hour));
+
+      // Convert to EST and return
+      return convertToEST(utcDate);
+  } else {
+      throw new Error("Invalid input string format.");
+  }
+}
+
+// Test the function with sample inputs
+try {
+    let testStringC = "/home/csutter/dashboard/data/data_camlevel/2024/12/20/C_20241220_16_30.js";
+    let testStringF = "/home/csutter/dashboard/data/data_hrrrlevel/2024/12/20/F_V20241220_17_FH03.js";
+
+    console.log(parseAndConvertToEST(testStringC)); // Example output: "Friday, December 20, at 11:30 AM EST"
+    console.log(parseAndConvertToEST(testStringF)); // Example output: "Friday, December 20, at 12:00 PM EST"
+} catch (error) {
+    console.error(error.message);
+}
+
+
+// this takes the query from UI (5 parameters that are user defined), and then finds the right 1) file and 2) time (just for logging) from those 5 parameters. The 5 params include things like 1) Live vs Fcst vs Historical 2) Cam-level vs Hrrr-level 3) the Date selected from dropdown if it's forecast list, etc. 
 app.get('/dot-api', (req, res) => {
   console.log('print beginning app get');
   // const { param1, param2, param3 } = req.query;
@@ -220,19 +367,25 @@ app.get('/dot-api', (req, res) => {
   const param5 = decodeURIComponent(req.query.param5 || "").trim();
 
   console.log(param1, param2, param3, param4, param5);
-  // console.log("lengths")
-  // console.log(param1.length);
-  // console.log(param2.length);
-  // console.log("check param 1")
-  // console.log(param1)
-  // console.log("check param 2")
-  // console.log(param2)
-  // console.log("check param 3")
-  // console.log(param3)
-  // // param 4 and 5 only relevant for historic look at cam level? maybe back to live view too
-  // console.log("check param 4")
-  // console.log(param4)
+
+  // params 1 through 5 are passed back from the user's selection in UI to the API to find the file of interest... 
+  // param 1 is indicating the time frame of interest - Live, Forecast, or Historical - which affects how the file of interest is found
+  console.log("check param 1")
+  console.log(param1)
+  // param 2 is indicating to grab either cam-level or hrrr-level data - which affects how the file of interest is found
+  console.log("check param 2")
+  console.log(param2)
+  // param 3 is only relevent for hrrr-level files -- bc depending what valid time is requested from user, need to grab the most relevant hrrrr file (the one with the smallest FH)
+  console.log("check param 3")
+  console.log(param3)
+  // param 4 and 5 only relevant for cam-level files -- bc depending what requested time is passed back from user (now, or historical) need to grab the closest relevant file
+  // paran 4 is the list of date dirs to consider for finding closest file
+  console.log("check param 4")
+  console.log(param4)
   // console.log(typeof param4)
+  // param 5 is the requested date time from user
+  console.log("check param 5")
+  console.log(param5)
 
   const dateList = param4.split(',');
   // console.log(dateList)
@@ -297,6 +450,14 @@ app.get('/dot-api', (req, res) => {
     console.log("setting filepath as ")
     console.log(filePath)
     console.log("done first if")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
+    console.log("done first if")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
+    
 
 
 
@@ -316,6 +477,13 @@ app.get('/dot-api', (req, res) => {
     console.log(path.join(dirPath, firstMatchingFile));
     filePath = path.join(dirPath, firstMatchingFile);
     console.log("done second if else")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
+    console.log("done second if else")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
   } else if (param1.includes("Forecast")) { // Additional check for the substring
     // const dirName = "data_hrrrlevel";
     // console.log('dirName:', dirName);
@@ -342,10 +510,14 @@ app.get('/dot-api', (req, res) => {
     // console.log("through here")
     // console.log('First matching file is:');
     // console.log(firstMatchingFile);
+    console.log("PRINTING TIME HERE")
     usedTimePrintUI = convertToEST(filetoload)
     console.log(usedTimePrintUI)
     filePath = path.join(dirPath, filetoload); //firstMatchingFile
     console.log("done third if else")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
 
   } else if (param1.includes("Historical") && param2.includes("data_camlevel")) {
     console.log("entering fourth if else")
@@ -354,6 +526,13 @@ app.get('/dot-api', (req, res) => {
     console.log("setting filepath as ")
     console.log(filePath)
     console.log("done fourth if else")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
+    console.log("done fourth if else")
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
 
 
   } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { // Additional check for the substring
@@ -372,11 +551,16 @@ app.get('/dot-api', (req, res) => {
     console.log('First matching file is:');
     console.log(firstMatchingFile);
     filePath = path.join(dirPath, firstMatchingFile);
+    // console.log("done fifth if else")
+    console.log("PRINTING TIME HERE")
+    usedTimePrintUI = convertToEST(filePath)
+    console.log(usedTimePrintUI)
     console.log("done fifth if else")
-
+    datestrEST = parseAndConvertToEST(filePath)
+    console.log("NEW: date time parsed in EST")
+    console.log(datestrEST)
   } else { // Fallback for other cases
-    filePath = "/home/csutter/dashboard/data/data_hrrrlevel/BROKENCHECK.js"
-    // "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
+    filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
   }
   // remove for new
   // const fileNamewithext = fileName + '.js';
@@ -407,7 +591,7 @@ app.get('/dot-api', (req, res) => {
         const dictionaryData = JSON.parse(data);
         res.set('Content-Type', 'application/json');
         console.log('through setting res type');
-        res.json({"data":dictionaryData,"time":formattedLastUpdated}); //formattedLastUpdated updating 12/19 with usedTimePrintUI not formattedLastUpdated
+        res.json({"data":dictionaryData,"time":datestrEST}); // THIS is the main response, what is returned and sent back from  API to UI. // Need to add the image data here and will need to process it to a non local image path and then will have to also update the fetch inside Map.js accordingly. Not just a matter of adding in the img_path with all the rest of teh model return stuff since that is a local file. 
       } catch (parseError) {
         console.error(parseError);
         res.status(500).json({ message: 'Failed to parse JSON' });
