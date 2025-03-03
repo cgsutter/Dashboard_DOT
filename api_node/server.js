@@ -375,7 +375,8 @@ app.get('/dot-api', (req, res) => {
     console.log("done fifth if else")
 
   } else { // Fallback for other cases
-    filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
+    filePath = "/home/csutter/dashboard/data/data_hrrrlevel/BROKENCHECK.js"
+    // "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
   }
   // remove for new
   // const fileNamewithext = fileName + '.js';
