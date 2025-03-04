@@ -451,6 +451,8 @@ const Map = (props) => {
   useEffect(() => {
     if (selectedContext == "Live") {
       console.log("upon context change-LIVE");
+      console.log(selectedContext, "data_camlevel", "irrelev.js", adjacentDaysLive, selectedDateCam)
+      
       const fetchDataAsync_live = async () => {
         try {
           // Fetch and set camlevel data
@@ -468,6 +470,7 @@ const Map = (props) => {
 
     
           // Fetch and set hrrrlevel data
+          console.log(selectedContext, "data_hrrrlevel", fileLiveHRRR, [], '')
           const resultfetchHRRR2 = await fetchData(
             selectedContext, 
             "data_hrrrlevel", 

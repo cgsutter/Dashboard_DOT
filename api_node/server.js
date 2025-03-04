@@ -592,7 +592,7 @@ app.get('/data', (req, res) => {
     }
   });
 });
-
+// K8 API compared to dev one: app get /dot-api rather than /data
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
