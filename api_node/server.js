@@ -9,12 +9,6 @@ const fs = require('fs');
 // difference between this version and development (main branch) version is just the app.get('/dot-api', (req, res) => { AS OPPOSED TO app.get('/data', (req, res) => {
 // Need to add in the get camera API, but that may be another set up?
 
-// pushing change to production git branch
-// Function to get the last modified date of a file
-function getLastModifiedDate(filePath) {
-  return fs.statSync(filePath).mtimeMs;
-}
-
 const allowedOrigin = '*';
 const corsOptions = {
   origin: allowedOrigin,
@@ -26,49 +20,13 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Helper function to find the most recent file in a directory
-function getMostRecentFile(dirPath) {
-  const files = fs.readdirSync(dirPath)
-    .filter(file => file.endsWith('.js')) // Adjust file extension as needed
-    .map(file => ({
-      file,
-      mtime: fs.statSync(path.join(dirPath, file)).mtime
-    }))
-    .sort((a, b) => b.mtime - a.mtime); // Sort by modification time, descending
-
-  return files.length > 0 ? files[0].file : null;
+// Function to get the last modified date of a file
+// used for historical
+function getLastModifiedDate(filePath) {
+  return fs.statSync(filePath).mtimeMs;
 }
 
-// // EDIT HERE 3/3 COME BACK AND SET THIS UP
-// app.get("/get-image", (req, res) => {
-//   console.log("Entering /get-image");
-
-//   const imagePath = req.query.path; // Local image path from UI
-//   if (!imagePath) {
-//     return res.status(400).json({ error: "No image path provided" });
-//   }
-
-//   // Extract filename from the full path
-//   // const filename = path.basename(imagePath);
-
-//   // Assuming images are stored in a known directory
-//   // const imageDir = "/your/local/image/directory"; // <--- CHANGE THIS
-//   // const filePath = path.join(imageDir, filename);
-
-//   console.log("Looking for file:", imagePath);
-
-//   // Check if the file exists
-//   if (!fs.existsSync(imagePath)) {
-//     console.log("File not found:", imagePath);
-//     return res.status(404).json({ error: "Image not found" });
-//   }
-
-//   // Send the image file as a response
-//   res.sendFile(imagePath);
-// });
-
-
-// for historical, find the file that has closest modification time to the requested user date time, and consider looking between 3 directories
+// for Cam-level, Live or historical, to find the file that has closest modification time to the requested user date time, and consider looking between 3 directories
 function findClosestFile(parentDir, dirs, targetDate) {
   console.log("inside the findClosestFile function BEGIN")
   console.log("target date?/")
@@ -112,7 +70,7 @@ function findClosestFile(parentDir, dirs, targetDate) {
   return closestFile;
 }
 
-// For forecast, list times fro the options for user to select. But if the time doesn't exist (HRRR lag, file missed, etc), we can point the user to the next closest time. This function and the next one does this. This first function lists 6 hours preceeding and proceeding the requested time. The second function checks which of those files exist. In both functions, order is preserved so that still, the user selected time is prioritized, and from there we move to +/-1 preceeding or prceeding hours, then +/- 2
+// For forecast (which is hrrr-level only), list times from the options for user to select. But if the time doesn't exist (HRRR lag, file missed, etc), we can point the user to the next closest time. This function and the next one does this. This first function lists 6 hours preceeding and proceeding the requested time. The second function checks which of those files exist. In both functions, order is preserved so that still, the user selected time is prioritized, and from there we move to +/-1 preceeding or prceeding hours, then +/- 2
 function getFileAccountingForUnavail(targetFileStr) {
     // Parse the input file to extract the date and hour
     const year = parseInt(targetFileStr.substring(1, 5), 10);
@@ -153,15 +111,9 @@ function getFileAccountingForUnavail(targetFileStr) {
     return filesinorder;
 }
 
-
+// for forecast (which is hrrr-level only)
 function seeIfFilesInListExist(baseDir, fileList) {
   // Extract unique dates from fileList
-  const uniqueDates = [...new Set(fileList.map(file => {
-    const year = file.substring(1, 5);
-    const month = file.substring(5, 7);
-    const day = file.substring(7, 9);
-    return `/${year}/${month}/${day}`;
-  }))];
 
   const matchingFiles = [];
 
@@ -192,7 +144,8 @@ function seeIfFilesInListExist(baseDir, fileList) {
 
 
 
-// alphabetically take the first file with the Valid Time subsrting, so it prioritizes the fcst hour 2 (which is the earliest it would be). This also works for the 1) historical where we would also want to be looking at fcst hour 2, and 2) for forecast after user selects which forecast hour to see, where 
+// for live or historical, hrrr-level
+// alphabetically take the first file with the Valid Time subsrting, so it prioritizes the fcst hour 2 (which is the earliest it would be). 
 function findFirstFileWithSubstring(directory, searchString) {
   // if (!searchString.startsWith('V') || searchString.length !== 11) {
   //   throw new Error('Invalid input string format');
@@ -234,18 +187,8 @@ function findFirstFileWithSubstring(directory, searchString) {
   }
 }
 
-  // console.log("check param 3")
-  // console.log(param3)
 
-  // this is always going to be the dirpath to look based on param2
-
-    // if (!dirName) {
-  //   return res.status(400).json({ message: 'File name is required' });
-  // }
-
-
-
-// ADDED FROM HERE DOWN 3/3
+// used for all? but not sure if we even need any more given what we're passing back, check this
 function convertToEST(filePath) {
   // Step 1: Extract the date and hour from the file path
   const regex = /\/(\d{4})\/(\d{2})\/(\d{2})\/F_V(\d{8})_(\d{2})_/;
@@ -292,7 +235,7 @@ function convertToEST(filePath) {
   return null;  // Return null if the regex doesn't match
 }
 
-// new 12/20
+// used for all.. compare w above
 function parseAndConvertToEST(inputString) {
   // Define a function to convert UTC date to EST
   function convertToEST(utcDate) {
@@ -344,16 +287,16 @@ function parseAndConvertToEST(inputString) {
   }
 }
 
-// Test the function with sample inputs
-try {
-    let testStringC = "/home/csutter/dashboard/data/data_camlevel/2024/12/20/C_20241220_16_30.js";
-    let testStringF = "/home/csutter/dashboard/data/data_hrrrlevel/2024/12/20/F_V20241220_17_FH03.js";
+// // Test the function with sample inputs
+// try {
+//     let testStringC = "/home/csutter/dashboard/data/data_camlevel/2024/12/20/C_20241220_16_30.js";
+//     let testStringF = "/home/csutter/dashboard/data/data_hrrrlevel/2024/12/20/F_V20241220_17_FH03.js";
 
-    console.log(parseAndConvertToEST(testStringC)); // Example output: "Friday, December 20, at 11:30 AM EST"
-    console.log(parseAndConvertToEST(testStringF)); // Example output: "Friday, December 20, at 12:00 PM EST"
-} catch (error) {
-    console.error(error.message);
-}
+//     console.log(parseAndConvertToEST(testStringC)); // Example output: "Friday, December 20, at 11:30 AM EST"
+//     console.log(parseAndConvertToEST(testStringF)); // Example output: "Friday, December 20, at 12:00 PM EST"
+// } catch (error) {
+//     console.error(error.message);
+// }
 
 
 // this takes the query from UI (5 parameters that are user defined), and then finds the right 1) file and 2) time (just for logging) from those 5 parameters. The 5 params include things like 1) Live vs Fcst vs Historical 2) Cam-level vs Hrrr-level 3) the Date selected from dropdown if it's forecast list, etc. 
@@ -432,141 +375,71 @@ app.get('/dot-api', (req, res) => {
   if (param6 === "") {
 
     if (param1.includes("Live") && param2.includes("data_camlevel")) {
-      // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
-      // const dirName = "data_camlevel";
-      // console.log('dirName:', dirName);
-      // const dirPath = path.join(__dirname, param2); 
 
-      // intermediate to see if getting the function stuff working
-      console.log("entering first if")
-      const do_try = findClosestFile(dirPath, dateList, param5); //"/home/csutter/dashboard/api_node/data_camlevel/"
-      console.log("printint result of fn below!!")
-      console.log(do_try)
-      console.log("done first if AFTER RUN FN")
+      console.log("entering Live & Cam-level if statement")
+      const liveCam = findClosestFile(dirPath, dateList, param5); //"/home/csutter/dashboard/api_node/data_camlevel/"
 
-
-      // old way (but with data_camlevel/allonedir)
-      // const mostRecentFile = getMostRecentFile(dirPath);
-      // if (!mostRecentFile) {
-      //   return res.status(404).json({ message: 'No files found' });
-      // }
-      // console.log('most recent is')
-      // console.log(mostRecentFile)
-      // filePath = path.join(dirPath, mostRecentFile);
-
-      filePath = do_try;
-      console.log("setting filepath as ")
+      filePath = liveCam;
+      console.log("setting filepath as live cam-level:")
       console.log(filePath)
-      console.log("done first if")
-      console.log("PRINTING TIME HERE")
-      usedTimePrintUI = convertToEST(filePath)
-      console.log(usedTimePrintUI)
-      console.log("done first if")
+      
       datestrEST = parseAndConvertToEST(filePath)
-      console.log("NEW: date time parsed in EST")
       console.log(datestrEST)
       
 
-
-
     } else if (param1.includes("Live") && param2.includes("data_hrrrlevel")) {
-      // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
-      // const dirName = "data_camlevel";
-      // console.log('dirName:', dirName);
-      // const dirPath = path.join(__dirname, param2); 
+      console.log("entering Live & HRRR-level if statement")
+
       console.log("entering second if")
-      const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
-      if (!firstMatchingFile) {
+      const firstMatchingFileLiveHRRR = findFirstFileWithSubstring(dirPath, param3);
+      if (!firstMatchingFileLiveHRRR) {
         return res.status(404).json({ message: 'No files found' });
       }
-      console.log('first matching file')
-      console.log(firstMatchingFile)
-      console.log("check here forecast")
-      console.log(path.join(dirPath, firstMatchingFile));
-      filePath = path.join(dirPath, firstMatchingFile);
-      console.log("done second if else")
-      console.log("PRINTING TIME HERE")
-      usedTimePrintUI = convertToEST(filePath)
-      console.log(usedTimePrintUI)
-      console.log("done second if else")
+
+      console.log(path.join(dirPath, firstMatchingFileLiveHRRR));
+      filePath = path.join(dirPath, firstMatchingFileLiveHRRR);
+      console.log("setting filepath as live hrrr-level:")
+      console.log(filePath)
+
+
       datestrEST = parseAndConvertToEST(filePath)
-      console.log("NEW: date time parsed in EST")
       console.log(datestrEST)
-    } else if (param1.includes("Forecast")) { // Additional check for the substring
-      // const dirName = "data_hrrrlevel";
-      // console.log('dirName:', dirName);
-      // const dirPath = path.join(__dirname, dirName); 
-      // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
-      // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
-      console.log("entering third if")
-      console.log("inside forecast")
-      console.log(dirPath)
-      console.log(param3)
+
+    } else if (param1.includes("Forecast")) { 
+      console.log("entering Forecast (which is HRRR-level only) if statement")
+
       const filesToConsider = getFileAccountingForUnavail(param3) // added 12/18
-      console.log("new function")
-      console.log(filesToConsider)
       const filesThatExist = seeIfFilesInListExist('/home/csutter/dashboard/data/data_hrrrlevel', filesToConsider)
-      console.log("function 2")
-      console.log(filesThatExist)
       const filetoload = filesThatExist[0]
-      console.log(filetoload)
-      // dont need this any more bc finding first file with new methods above
-      // const firstMatchingFile = findFirstFileWithSubstring(dirPath, filetoload);//change last one to param3 and comment out above line 
-      // if (!firstMatchingFile) {
-      //     return res.status(404).json({ message: 'No matching files found' });
-      // }
-      // console.log("through here")
-      // console.log('First matching file is:');
-      // console.log(firstMatchingFile);
-      console.log("PRINTING TIME HERE")
-      usedTimePrintUI = convertToEST(filetoload)
-      console.log(usedTimePrintUI)
-      filePath = path.join(dirPath, filetoload); //firstMatchingFile
-      console.log("done third if else")
+      filePath = path.join(dirPath, filetoload); 
+      console.log("setting filepath as forecast hrrr-level:")
+      console.log(filePath)
+
       datestrEST = parseAndConvertToEST(filePath)
-      console.log("NEW: date time parsed in EST")
-      console.log(datestrEST)
 
     } else if (param1.includes("Historical") && param2.includes("data_camlevel")) {
-      console.log("entering fourth if else")
-      const do_try2 = findClosestFile(dirPath, dateList, param5);
-      filePath = do_try2;
-      console.log("setting filepath as ")
+      console.log("entering Historical cam-level if statement")
+      const histCam = findClosestFile(dirPath, dateList, param5);
+      filePath = histCam;
+      console.log("setting filepath as historical cam-level:")
       console.log(filePath)
-      console.log("done fourth if else")
-      console.log("PRINTING TIME HERE")
-      usedTimePrintUI = convertToEST(filePath)
-      console.log(usedTimePrintUI)
-      console.log("done fourth if else")
+
       datestrEST = parseAndConvertToEST(filePath)
-      console.log("NEW: date time parsed in EST")
-      console.log(datestrEST)
 
+    } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { 
+      console.log("entering Historical hrrr-level if statement")
 
-    } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { // Additional check for the substring
-      // const dirName = "data_hrrrlevel";
-      // console.log('dirName:', dirName);
-      // const dirPath = path.join(__dirname, dirName); 
-      // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
-      // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
-      console.log("entering 5fth if")
-      console.log("inside historical")
-
-      const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
-      if (!firstMatchingFile) {
+      const firstMatchingFileHistHRRR = findFirstFileWithSubstring(dirPath, param3);
+      if (!firstMatchingFileHistHRRR) {
           return res.status(404).json({ message: 'No matching files found' });
       }
-      console.log('First matching file is:');
-      console.log(firstMatchingFile);
-      filePath = path.join(dirPath, firstMatchingFile);
-      // console.log("done fifth if else")
-      console.log("PRINTING TIME HERE")
-      usedTimePrintUI = convertToEST(filePath)
-      console.log(usedTimePrintUI)
-      console.log("done fifth if else")
+
+      filePath = path.join(dirPath, firstMatchingFileHistHRRR);
+      console.log("setting filepath as historical hrrr-level:")
+      console.log(filePath)
+
       datestrEST = parseAndConvertToEST(filePath)
-      console.log("NEW: date time parsed in EST")
-      console.log(datestrEST)
+
     } else { // Fallback for other cases
       filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
     }
@@ -575,21 +448,8 @@ app.get('/dot-api', (req, res) => {
     // const filePath = path.join(__dirname, fileNamewithext); //__dirname, 'data', fileNamewithexts
     console.log('filePath:', filePath);
     const lastUpdated = getLastModifiedDate(filePath);
-    // const formattedLastUpdated = new Date(lastUpdated).toISOString();
-    // Format the date to New York time with AM/PM and timezone abbreviation (EDT/EST)
-    const formattedLastUpdated = new Date(lastUpdated).toLocaleString("en-US", {
-      timeZone: "America/New_York",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-      hour12: true, // Enables AM/PM format
-      timeZoneName: "short" // Adds EDT/EST based on DST
-    });
 
-
+    // read in the file, filePath is the main thing needed from each of the pieces of code above
     fs.readFile(filePath, 'utf8', (err, data) => {
       if (err) {
         console.error(err);
