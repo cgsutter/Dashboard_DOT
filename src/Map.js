@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import mapboxgl from '!mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import camdata from "../data/dot_cam_latlon.js";
 import Tooltip from './Tooltip'; // Import the Tooltip component
 import {convertToGMT} from './timing_helper.js';
 import {prepDateString} from './timing_helper.js';
@@ -10,7 +9,6 @@ import {prepListForecastOptions} from './timing_helper.js';
 import {prepFileString_live} from './timing_helper.js';
 import {prepFileString_fcst} from './timing_helper.js';
 import {prep_tofilenamestring} from './timing_helper.js';
-import {prepDateObject_fcst} from './timing_helper.js';
 import {prevday_nextday} from './timing_helper.js';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";  // 
@@ -54,11 +52,9 @@ const Map = (props) => {
   const [fileLiveHRRR, setfileLiveHRRR] =  useState(prepFileString_live(new Date())); //XXX8 XXinputFetchHRRR
   // When setContext changes, these other state variables are dynamically loaded. They dont affect initial load bc we default to "Live" initially
   const [forecastOptions, setForecastOptions] = useState([]); //XXX10
-  const [selectedForecastET, setSelectedForecastET] = useState(''); //XXX11 XXUSERACTION based on user selection from dropdown. The remaining steps parse out time strings and create hrrr file name to request
-  const [selectedForecastETDate, setSelectedForecastETDate] = useState(''); //XXX12
-  const [selectedForecast, setSelectedForecast] = useState(''); //XXX13 selected forecast which is a string (which will need to then prepare the filename, see below)
+  const [selectedForecastET, setSelectedForecastET] = useState(''); //XXX11 XXUSERACTION based on user selection from dropdown. The remaining steps parse out time strings and create hrrr file name to request selected forecast which is a string (which will need to then prepare the filename, see below)
   const [fileForecast, setFileForecast] = useState(''); //XXX14  XXinputFetchHRRR
-  const [selectedPastET, setSelectedPastET] = useState(''); //XXX 1-B and 11-B (historical equivalent to forecast) XXUSERACTION
+  const [selectedPastET, setSelectedPastET] = useState(''); //XXX 1-B for cam-level and 11-B for hrrr-level (historical equivalent to forecast) XXUSERACTION
   const [selectedPast, setSelectedPast] = useState(''); //XXX 2-B XXinputFetchCam
   const [filePast, setFilePast] = useState(''); //XXX14-B XXinputFetchHRRR
   const popupRef = useRef(null); // Store the popup instance
@@ -204,7 +200,7 @@ const Map = (props) => {
       console.log(forecastOptions)
       console.log(forecastOptions[0])
 
-      console.log("auto initially select the selectedForecast (before user has a chance to select a different one), to the first value")
+      console.log("auto initially select the first forecast option (before user has a chance to select a different one), to the first value")
       setSelectedForecastET(forecastOptions[0]);
     }
   }, [forecastOptions]) ;
@@ -223,54 +219,12 @@ const Map = (props) => {
     // maybe better to move these under a useeffect although can do similar things?
   };
 
-  // useEffect(() => {
-  //   if (flagFCST === true) { 
-  //     console.log("upon inital load of selected forecast:")
-  //     console.log(selectedForecast)
-  //   }
-  // }, [selectedForecast]) ;
 
 
-  // // fcst1
-  // useEffect(() => {
-  //   if (flagFCST === true) { 
-  //     console.log("parse the date from the user's selected fcst date")
-  //     console.log("user selection string")
-  //     console.log(selectedForecastET)
-  //     setSelectedForecastETDate(prepDateObject_fcst(selectedForecastET));
-  //   }
-  // }, [selectedForecastET]) ;
-  // // selectefForecastETDate
-  
-  // // just logging
-  // useEffect(() => {
-  //   if (flagFCST === true) { 
-  //     console.log("parsed out date from user selection")
-  //     console.log(selectedForecastETDate)
-  //   }
-  // }, [selectedForecastETDate]) ;
 
-
-  // //fcst 2
-  // useEffect(() => {
-  //   if (flagFCST === true) { 
-  //     console.log("prepare fcst file name part 1")
-  //     setSelectedForecast(convertToGMT(selectedForecastETDate));
-  //     console.log("break 2 G");
-  //   }
-  // }, [selectedForecastETDate]) ;
 
   useEffect(() => {
     if (flagFCST === true) { 
-      // old way before refactor
-      // console.log("prepare fcst file name part 2")
-      // console.log(typeof selectedForecast)
-      // console.log("NOTE! Below, it will say EST, but the time conversion was correctly converted to GMT... the designation of saying EST does not matter for the next steps which is to parse out the file name")
-      // console.log(selectedForecast)
-      // console.log("rounded to hour, which will then be inpt to find fcst file")
-      // console.log(prepDateString(selectedForecast))
-      // // doing all in one step below but logging each piece above
-      // setFileForecast(prep_tofilenamestring(prepDateString(selectedForecast)))
       setFileForecast(prepFileString_fcst(selectedForecastET))
 
     }
@@ -827,29 +781,9 @@ const Map = (props) => {
         console.log(imagePath)
   
         let popupContent = `<strong>Confidence:</strong> ${confidence}<br><strong>Model Prediction:</strong> ${modelpred}`;
-  
-        // Add image only if showdots is true and imagePath is valid
-        // if (showdots && imagePath) {
-        //   popupContent += `<br><img src="${imagePath}" alt="Feature Image" 
-        //                    style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
-        // }
 
         if (showdots && imagePath) {
-          // try {
-          //   // Call API to get the actual image URL
-          //   const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/get-image?path=${encodeURIComponent(imagePath)}`);
-          //   const data = await response.json();
 
-          //   console.log("API Response For Image:", data);  // Add this for debugging
-
-        
-          //   if (data.imageUrl) {
-          //     popupContent += `<br><img src="${data.imageUrl}" alt="Feature Image" 
-          //                       style="max-width: 200px; max-height: 150px; display: block; margin-top: 5px;">`;
-          //   }
-          // } catch (error) {
-          //   console.error("Error fetching image:", error);
-          // }
           try {
             const response = await fetch(`https://xcitelab.org/dot-api?param1=&param2=&param3=&param4=&param5=&param6=${encodeURIComponent(imagePath)}`);
             
