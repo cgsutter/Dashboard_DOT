@@ -365,6 +365,7 @@ app.get('/dot-api', (req, res) => {
   const param3 = decodeURIComponent(req.query.param3 || "").trim();
   const param4 = decodeURIComponent(req.query.param4 || "").trim();
   const param5 = decodeURIComponent(req.query.param5 || "").trim();
+  const param6 = decodeURIComponent(req.query.param6 || "").trim();
 
   console.log(param1, param2, param3, param4, param5);
 
@@ -386,6 +387,10 @@ app.get('/dot-api', (req, res) => {
   // param 5 is the requested date time from user
   console.log("check param 5")
   console.log(param5)
+
+  // image path if click, see what's grabbed from UI
+  console.log("check param 6")
+  console.log(param6)
 
   const dateList = param4.split(',');
   // console.log(dateList)
@@ -423,181 +428,197 @@ app.get('/dot-api', (req, res) => {
   // find the filepath to use in the case that we're looking for the live, dot_camlevel dir
   // this should be for LIVE option
   // rather than all these if statements here, just have the UI push two levels of information to the API to do logic pull 
-  if (param1.includes("Live") && param2.includes("data_camlevel")) {
-    // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
-    // const dirName = "data_camlevel";
-    // console.log('dirName:', dirName);
-    // const dirPath = path.join(__dirname, param2); 
 
-    // intermediate to see if getting the function stuff working
-    console.log("entering first if")
-    const do_try = findClosestFile(dirPath, dateList, param5); //"/home/csutter/dashboard/api_node/data_camlevel/"
-    console.log("printint result of fn below!!")
-    console.log(do_try)
-    console.log("done first if AFTER RUN FN")
+  if (param6 === "") {
 
+    if (param1.includes("Live") && param2.includes("data_camlevel")) {
+      // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
+      // const dirName = "data_camlevel";
+      // console.log('dirName:', dirName);
+      // const dirPath = path.join(__dirname, param2); 
 
-    // old way (but with data_camlevel/allonedir)
-    // const mostRecentFile = getMostRecentFile(dirPath);
-    // if (!mostRecentFile) {
-    //   return res.status(404).json({ message: 'No files found' });
-    // }
-    // console.log('most recent is')
-    // console.log(mostRecentFile)
-    // filePath = path.join(dirPath, mostRecentFile);
-
-    filePath = do_try;
-    console.log("setting filepath as ")
-    console.log(filePath)
-    console.log("done first if")
-    console.log("PRINTING TIME HERE")
-    usedTimePrintUI = convertToEST(filePath)
-    console.log(usedTimePrintUI)
-    console.log("done first if")
-    datestrEST = parseAndConvertToEST(filePath)
-    console.log("NEW: date time parsed in EST")
-    console.log(datestrEST)
-    
+      // intermediate to see if getting the function stuff working
+      console.log("entering first if")
+      const do_try = findClosestFile(dirPath, dateList, param5); //"/home/csutter/dashboard/api_node/data_camlevel/"
+      console.log("printint result of fn below!!")
+      console.log(do_try)
+      console.log("done first if AFTER RUN FN")
 
 
+      // old way (but with data_camlevel/allonedir)
+      // const mostRecentFile = getMostRecentFile(dirPath);
+      // if (!mostRecentFile) {
+      //   return res.status(404).json({ message: 'No files found' });
+      // }
+      // console.log('most recent is')
+      // console.log(mostRecentFile)
+      // filePath = path.join(dirPath, mostRecentFile);
 
-  } else if (param1.includes("Live") && param2.includes("data_hrrrlevel")) {
-    // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
-    // const dirName = "data_camlevel";
-    // console.log('dirName:', dirName);
-    // const dirPath = path.join(__dirname, param2); 
-    console.log("entering second if")
-    const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
-    if (!firstMatchingFile) {
-      return res.status(404).json({ message: 'No files found' });
-    }
-    console.log('first matching file')
-    console.log(firstMatchingFile)
-    console.log("check here forecast")
-    console.log(path.join(dirPath, firstMatchingFile));
-    filePath = path.join(dirPath, firstMatchingFile);
-    console.log("done second if else")
-    console.log("PRINTING TIME HERE")
-    usedTimePrintUI = convertToEST(filePath)
-    console.log(usedTimePrintUI)
-    console.log("done second if else")
-    datestrEST = parseAndConvertToEST(filePath)
-    console.log("NEW: date time parsed in EST")
-    console.log(datestrEST)
-  } else if (param1.includes("Forecast")) { // Additional check for the substring
-    // const dirName = "data_hrrrlevel";
-    // console.log('dirName:', dirName);
-    // const dirPath = path.join(__dirname, dirName); 
-    // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
-    // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
-    console.log("entering third if")
-    console.log("inside forecast")
-    console.log(dirPath)
-    console.log(param3)
-    const filesToConsider = getFileAccountingForUnavail(param3) // added 12/18
-    console.log("new function")
-    console.log(filesToConsider)
-    const filesThatExist = seeIfFilesInListExist('/home/csutter/dashboard/data/data_hrrrlevel', filesToConsider)
-    console.log("function 2")
-    console.log(filesThatExist)
-    const filetoload = filesThatExist[0]
-    console.log(filetoload)
-    // dont need this any more bc finding first file with new methods above
-    // const firstMatchingFile = findFirstFileWithSubstring(dirPath, filetoload);//change last one to param3 and comment out above line 
-    // if (!firstMatchingFile) {
-    //     return res.status(404).json({ message: 'No matching files found' });
-    // }
-    // console.log("through here")
-    // console.log('First matching file is:');
-    // console.log(firstMatchingFile);
-    console.log("PRINTING TIME HERE")
-    usedTimePrintUI = convertToEST(filetoload)
-    console.log(usedTimePrintUI)
-    filePath = path.join(dirPath, filetoload); //firstMatchingFile
-    console.log("done third if else")
-    datestrEST = parseAndConvertToEST(filePath)
-    console.log("NEW: date time parsed in EST")
-    console.log(datestrEST)
-
-  } else if (param1.includes("Historical") && param2.includes("data_camlevel")) {
-    console.log("entering fourth if else")
-    const do_try2 = findClosestFile(dirPath, dateList, param5);
-    filePath = do_try2;
-    console.log("setting filepath as ")
-    console.log(filePath)
-    console.log("done fourth if else")
-    console.log("PRINTING TIME HERE")
-    usedTimePrintUI = convertToEST(filePath)
-    console.log(usedTimePrintUI)
-    console.log("done fourth if else")
-    datestrEST = parseAndConvertToEST(filePath)
-    console.log("NEW: date time parsed in EST")
-    console.log(datestrEST)
+      filePath = do_try;
+      console.log("setting filepath as ")
+      console.log(filePath)
+      console.log("done first if")
+      console.log("PRINTING TIME HERE")
+      usedTimePrintUI = convertToEST(filePath)
+      console.log(usedTimePrintUI)
+      console.log("done first if")
+      datestrEST = parseAndConvertToEST(filePath)
+      console.log("NEW: date time parsed in EST")
+      console.log(datestrEST)
+      
 
 
-  } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { // Additional check for the substring
-    // const dirName = "data_hrrrlevel";
-    // console.log('dirName:', dirName);
-    // const dirPath = path.join(__dirname, dirName); 
-    // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
-    // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
-    console.log("entering 5fth if")
-    console.log("inside historical")
 
-    const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
-    if (!firstMatchingFile) {
-        return res.status(404).json({ message: 'No matching files found' });
-    }
-    console.log('First matching file is:');
-    console.log(firstMatchingFile);
-    filePath = path.join(dirPath, firstMatchingFile);
-    // console.log("done fifth if else")
-    console.log("PRINTING TIME HERE")
-    usedTimePrintUI = convertToEST(filePath)
-    console.log(usedTimePrintUI)
-    console.log("done fifth if else")
-    datestrEST = parseAndConvertToEST(filePath)
-    console.log("NEW: date time parsed in EST")
-    console.log(datestrEST)
-  } else { // Fallback for other cases
-    filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
-  }
-  // remove for new
-  // const fileNamewithext = fileName + '.js';
-  // const filePath = path.join(__dirname, fileNamewithext); //__dirname, 'data', fileNamewithexts
-  console.log('filePath:', filePath);
-  const lastUpdated = getLastModifiedDate(filePath);
-  // const formattedLastUpdated = new Date(lastUpdated).toISOString();
-  // Format the date to New York time with AM/PM and timezone abbreviation (EDT/EST)
-  const formattedLastUpdated = new Date(lastUpdated).toLocaleString("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-    hour12: true, // Enables AM/PM format
-    timeZoneName: "short" // Adds EDT/EST based on DST
-  });
-
-
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) {
-      console.error(err);
-      res.status(404).json({ message: 'File not found' });
-    } else {
-      try {
-        const dictionaryData = JSON.parse(data);
-        res.set('Content-Type', 'application/json');
-        console.log('through setting res type');
-        res.json({"data":dictionaryData,"time":datestrEST}); // THIS is the main response, what is returned and sent back from  API to UI. // Need to add the image data here and will need to process it to a non local image path and then will have to also update the fetch inside Map.js accordingly. Not just a matter of adding in the img_path with all the rest of teh model return stuff since that is a local file. 
-      } catch (parseError) {
-        console.error(parseError);
-        res.status(500).json({ message: 'Failed to parse JSON' });
+    } else if (param1.includes("Live") && param2.includes("data_hrrrlevel")) {
+      // const dirPath = path.join(__dirname, dirName); // Update with your specific directory
+      // const dirName = "data_camlevel";
+      // console.log('dirName:', dirName);
+      // const dirPath = path.join(__dirname, param2); 
+      console.log("entering second if")
+      const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
+      if (!firstMatchingFile) {
+        return res.status(404).json({ message: 'No files found' });
       }
+      console.log('first matching file')
+      console.log(firstMatchingFile)
+      console.log("check here forecast")
+      console.log(path.join(dirPath, firstMatchingFile));
+      filePath = path.join(dirPath, firstMatchingFile);
+      console.log("done second if else")
+      console.log("PRINTING TIME HERE")
+      usedTimePrintUI = convertToEST(filePath)
+      console.log(usedTimePrintUI)
+      console.log("done second if else")
+      datestrEST = parseAndConvertToEST(filePath)
+      console.log("NEW: date time parsed in EST")
+      console.log(datestrEST)
+    } else if (param1.includes("Forecast")) { // Additional check for the substring
+      // const dirName = "data_hrrrlevel";
+      // console.log('dirName:', dirName);
+      // const dirPath = path.join(__dirname, dirName); 
+      // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
+      // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+      console.log("entering third if")
+      console.log("inside forecast")
+      console.log(dirPath)
+      console.log(param3)
+      const filesToConsider = getFileAccountingForUnavail(param3) // added 12/18
+      console.log("new function")
+      console.log(filesToConsider)
+      const filesThatExist = seeIfFilesInListExist('/home/csutter/dashboard/data/data_hrrrlevel', filesToConsider)
+      console.log("function 2")
+      console.log(filesThatExist)
+      const filetoload = filesThatExist[0]
+      console.log(filetoload)
+      // dont need this any more bc finding first file with new methods above
+      // const firstMatchingFile = findFirstFileWithSubstring(dirPath, filetoload);//change last one to param3 and comment out above line 
+      // if (!firstMatchingFile) {
+      //     return res.status(404).json({ message: 'No matching files found' });
+      // }
+      // console.log("through here")
+      // console.log('First matching file is:');
+      // console.log(firstMatchingFile);
+      console.log("PRINTING TIME HERE")
+      usedTimePrintUI = convertToEST(filetoload)
+      console.log(usedTimePrintUI)
+      filePath = path.join(dirPath, filetoload); //firstMatchingFile
+      console.log("done third if else")
+      datestrEST = parseAndConvertToEST(filePath)
+      console.log("NEW: date time parsed in EST")
+      console.log(datestrEST)
+
+    } else if (param1.includes("Historical") && param2.includes("data_camlevel")) {
+      console.log("entering fourth if else")
+      const do_try2 = findClosestFile(dirPath, dateList, param5);
+      filePath = do_try2;
+      console.log("setting filepath as ")
+      console.log(filePath)
+      console.log("done fourth if else")
+      console.log("PRINTING TIME HERE")
+      usedTimePrintUI = convertToEST(filePath)
+      console.log(usedTimePrintUI)
+      console.log("done fourth if else")
+      datestrEST = parseAndConvertToEST(filePath)
+      console.log("NEW: date time parsed in EST")
+      console.log(datestrEST)
+
+
+    } else if (param1.includes("Historical") && param2.includes("data_hrrrlevel")) { // Additional check for the substring
+      // const dirName = "data_hrrrlevel";
+      // console.log('dirName:', dirName);
+      // const dirPath = path.join(__dirname, dirName); 
+      // const dirPath = path.join(__dirname, dirName); // Update with your specific directorys
+      // const searchString = 'V20220602_02'; // Replace with the substring that is prepped for current (live) time
+      console.log("entering 5fth if")
+      console.log("inside historical")
+
+      const firstMatchingFile = findFirstFileWithSubstring(dirPath, param3);
+      if (!firstMatchingFile) {
+          return res.status(404).json({ message: 'No matching files found' });
+      }
+      console.log('First matching file is:');
+      console.log(firstMatchingFile);
+      filePath = path.join(dirPath, firstMatchingFile);
+      // console.log("done fifth if else")
+      console.log("PRINTING TIME HERE")
+      usedTimePrintUI = convertToEST(filePath)
+      console.log(usedTimePrintUI)
+      console.log("done fifth if else")
+      datestrEST = parseAndConvertToEST(filePath)
+      console.log("NEW: date time parsed in EST")
+      console.log(datestrEST)
+    } else { // Fallback for other cases
+      filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
     }
-  });
+    // remove for new
+    // const fileNamewithext = fileName + '.js';
+    // const filePath = path.join(__dirname, fileNamewithext); //__dirname, 'data', fileNamewithexts
+    console.log('filePath:', filePath);
+    const lastUpdated = getLastModifiedDate(filePath);
+    // const formattedLastUpdated = new Date(lastUpdated).toISOString();
+    // Format the date to New York time with AM/PM and timezone abbreviation (EDT/EST)
+    const formattedLastUpdated = new Date(lastUpdated).toLocaleString("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: true, // Enables AM/PM format
+      timeZoneName: "short" // Adds EDT/EST based on DST
+    });
+
+
+    fs.readFile(filePath, 'utf8', (err, data) => {
+      if (err) {
+        console.error(err);
+        res.status(404).json({ message: 'File not found' });
+      } else {
+        try {
+          const dictionaryData = JSON.parse(data);
+          res.set('Content-Type', 'application/json');
+          console.log('through setting res type');
+          res.json({"data":dictionaryData,"time":datestrEST}); // THIS is the main response, what is returned and sent back from  API to UI. // Need to add the image data here and will need to process it to a non local image path and then will have to also update the fetch inside Map.js accordingly. Not just a matter of adding in the img_path with all the rest of teh model return stuff since that is a local file. 
+        } catch (parseError) {
+          console.error(parseError);
+          res.status(500).json({ message: 'Failed to parse JSON' });
+        }
+      }
+    });
+  } else {
+    // Only proceed if param6 is NOT empty
+    console.log("Looking for file:", param6);
+  
+    // Check if the file exists
+    if (!fs.existsSync(param6)) {
+      console.log("File not found:", param6);
+      return res.status(404).json({ error: "Image not found" });
+    }
+  
+    // Send the image file as a response
+    return res.sendFile(param6);
+  }
 });
 
 app.listen(port, () => {

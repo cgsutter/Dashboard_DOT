@@ -373,10 +373,10 @@ const Map = (props) => {
   // Second: Load in the data
 
   // Define helper function to fect data from API. When called on (see useEffect later) will load the corresponding data based on user selection
-  const fetchData = async (inputcontext, inputlevel, inputfilestring, inputdirsadjacent, inputcamdate) => {
+  const fetchData = async (inputcontext, inputlevel, inputfilestring, inputdirsadjacent, inputcamdate, inputimgpath) => {
     try {
 
-      const response = await fetch(`https://xcitelab.org/dot-api?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}&param4=${inputdirsadjacent}&param5=${inputcamdate}`, {
+      const response = await fetch(`https://xcitelab.org/dot-api?param1=${inputcontext}&param2=${inputlevel}&param3=${inputfilestring}&param4=${inputdirsadjacent}&param5=${inputcamdate}&param6=${inputimgpath}`, {
         method: 'GET',
         // credentials: 'include', // Include cookies
         headers: {
@@ -417,7 +417,7 @@ const Map = (props) => {
           "irrelev.js", 
           adjacentDaysLive, 
           selectedDateCam,
-
+          "",
         );
 
         // this is where the main data from API fetch is pulled in
@@ -430,7 +430,8 @@ const Map = (props) => {
           "data_hrrrlevel", 
           fileLiveHRRR, 
           [], 
-          ''
+          '',
+          ""
         );
 
         // this is where the main data from API fetch is pulled in
@@ -461,7 +462,8 @@ const Map = (props) => {
             "data_camlevel",  //"data_camlevel/allonedir", 
             "irrelev.js", 
             adjacentDaysLive, 
-            selectedDateCam
+            selectedDateCam,
+            ""
           );
           // const dataloaded_camlevel = resultfetch.data;   // Access the data
           // const hrrrUpdateTime = resultfetch.time;
@@ -476,7 +478,8 @@ const Map = (props) => {
             "data_hrrrlevel", 
             fileLiveHRRR, 
             [], 
-            ''
+            '',
+            ""
           );
           // const dataloaded_hrrrlevel = resultfetch.data;   // Access the data
           // const hrrrUpdateTime = resultfetch.time;
@@ -511,7 +514,8 @@ const Map = (props) => {
             "data_hrrrlevel", 
             fileForecast, 
             [], 
-            ''
+            '',
+            ""
           );
           setFCSTData(resultfetchHRRR3.data);
           setLastUpdateFCST(resultfetchHRRR3.time);
@@ -536,7 +540,8 @@ const Map = (props) => {
             "data_camlevel", 
             "irrelev.js", 
             adjacentDaysHist, 
-            selectedPast
+            selectedPast,
+            ""
           );
           setData(resultfetch4.data);
           setLastUpdateCam(resultfetch4.time);
@@ -547,7 +552,8 @@ const Map = (props) => {
             "data_hrrrlevel", 
             filePast, 
             [], 
-            ''
+            '',
+            ""
           );
           setFCSTData(resultfetchHRRR4.data);
           setLastUpdateFCST(resultfetchHRRR4.time);
