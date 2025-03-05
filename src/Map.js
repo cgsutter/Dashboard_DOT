@@ -851,7 +851,7 @@ const Map = (props) => {
           //   console.error("Error fetching image:", error);
           // }
           try {
-            const response = await fetch(`https://xcitemain.asrc.albany.edu/rnode/dgx-a100/3009/get-image?path=${encodeURIComponent(imagePath)}`);
+            const response = await fetch(`https://xcitelab.org/dot-api?param1=&param2=&param3=&param4=&param5=&param6=${encodeURIComponent(imagePath)}`);
             
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
           
