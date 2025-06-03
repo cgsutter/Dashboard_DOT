@@ -37,6 +37,7 @@ const Map = (props) => {
   const [showdots, setShowdots] = useState(true); // Toggle for FCST data
   const [showFCST, setShowFCST] = useState(true); // Toggle for FCST data
 
+
   const [selectedContext, setSelectedContext] = useState('Live'); // "Live" or "Forecast" or "Historical" XXUSERACTION
   // these are used so that code runs in order that we need. For example, if selectContext changes, we need to do a set of thing (date, filename, etc) BEFORE we try to read in the data and load the map, so by having these flags change after selectedContext change, can use these flags as the dependency for loading data (data fetch). o/w, if just rely on selectContext change for fetching data, react may try to fetch data prior to setting filename, etc (which we need for proper loading!)
   // const [flagLive, setFlagLive] = useState(true); // may need this if user goes back to live context -- check this
@@ -510,8 +511,6 @@ const Map = (props) => {
           );
           setFCSTData(resultfetchHRRR4.data);
           setLastUpdateFCST(resultfetchHRRR4.time);
-          console.log("FILE BEING FETCHED FROM MAP.JS")
-          console.log(filePast);
         } catch (error) {
           console.error("Error fetching data:", error);
         }
@@ -891,8 +890,8 @@ const Map = (props) => {
               onChange={handleDateChange}
               showTimeSelect
               timeIntervals={60} // Time increments of 5 minutes
-              minDate={new Date('2025-02-06T01:00:00')} // '2025-01-04T16:00:00' Start date: Jan 1st, 2024 HERE! FOR ADJUSTINGG HISTROICAL DATES! // '2025-01-04T16:00:00'
-              maxDate={new Date('2025-02-07T23:00:00')} // '2025-01-06T23:00:00' selectedDateET //'2025-01-06T23:00:00'
+              minDate={new Date('2025-01-04T16:00:00')} // '2025-01-04T16:00:00' Start date: Jan 1st, 2024 HERE! FOR ADJUSTINGG HISTROICAL DATES!
+              maxDate={new Date('2025-01-06T23:00:00')} // '2025-01-06T23:00:00' selectedDateET
               // minTime={new Date('2024-12-19T00:00:00').setHours(12, 0, 0)} // Earliest time: 8:00 AM
               // maxTime={new Date('2024-12-19T00:00:00').setHours(23, 0, 0)} // Latest time: 5:00 PM
               dateFormat="Pp" // Date format: MM/DD/YYYY HH:MM
