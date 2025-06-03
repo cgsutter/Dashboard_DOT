@@ -69,9 +69,9 @@ export {prep_tofilenamestring};
 
 
 function prepListForecastOptions(selectedDateETInput) {
-    console.log("beginning prepListForecastOptions")
-    console.log("inputted time from which to create dropdown options for future times")
-    console.log(selectedDateETInput)
+    // console.log("beginning prepListForecastOptions")
+    // console.log("inputted time from which to create dropdown options for future times")
+    // console.log(selectedDateETInput)
 
     const inputHour = roundTimeToHour(selectedDateETInput)
     
@@ -102,7 +102,7 @@ function prepListForecastOptions(selectedDateETInput) {
     // look for those files in directory
     // if the files dont exist, remove them from the list so they dont populate
 
-    console.log("got through here too")
+    // console.log("got through here too")
     const listy = hours.map(date =>
         `Forecast for ${date.toLocaleString("en-US", {
             year: "numeric",
@@ -186,13 +186,13 @@ export { prepDateObject_fcst };
 
 function prepFileString_live(dateLiveET) {
     // check 
-    console.log("entered live hrrr file prep in timing helper")
+    // console.log("entered live hrrr file prep in timing helper")
     const dateLiveGMT = convertToGMT(dateLiveET); //5here
     const roundToHr = roundTimeToHour(dateLiveGMT);//6here
     const dateStr = prepDateString(roundToHr); //7here
     const hrrrFileName = prep_tofilenamestring(dateStr); // returns 8 needed for Mapping
-    console.log("returned file name:")
-    console.log(hrrrFileName)
+    // console.log("returned file name:")
+    // console.log(hrrrFileName)
 
     return hrrrFileName
 }
@@ -200,14 +200,14 @@ export { prepFileString_live };
 
 function prepFileString_fcst(selectedForecastETInput) {
     // check 
-    console.log("entered newway FCST hrrr file prep in timing helper")
+    // console.log("entered newway FCST hrrr file prep in timing helper")
     const selectedForecastETDate = prepDateObject_fcst(selectedForecastETInput);
     const selectedForecast = convertToGMT(selectedForecastETDate);
     const dateStr = prepDateString(selectedForecast);
     const hrrrFileName = prep_tofilenamestring(dateStr);
 
-    console.log("returned file name newway:")
-    console.log(hrrrFileName)
+    // console.log("returned file name newway:")
+    // console.log(hrrrFileName)
 
     return hrrrFileName
 }

@@ -441,7 +441,7 @@ app.get('/dot-api', (req, res) => {
       datestrEST = parseAndConvertToEST(filePath)
 
     } else { // Fallback for other cases
-      filePath = "/home/csutter/dashboard/api_node/data_hrrrlevel/BROKENCHECK.js";
+      filePath = "/home/csutter/dashboard/data/data_hrrrlevel/BROKENCHECK.js";
     }
     // remove for new
     // const fileNamewithext = fileName + '.js';
@@ -460,6 +460,8 @@ app.get('/dot-api', (req, res) => {
           res.set('Content-Type', 'application/json');
           console.log('through setting res type');
           res.json({"data":dictionaryData,"time":datestrEST}); // THIS is the main response, what is returned and sent back from  API to UI. // Need to add the image data here and will need to process it to a non local image path and then will have to also update the fetch inside Map.js accordingly. Not just a matter of adding in the img_path with all the rest of teh model return stuff since that is a local file. 
+          console.log("FILE BEING RETURN TO MAP.JS FROM API");
+          console.log(filePath);
         } catch (parseError) {
           console.error(parseError);
           res.status(500).json({ message: 'Failed to parse JSON' });
